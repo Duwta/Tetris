@@ -18,7 +18,7 @@ int rd_color(){
 }
 
 class Data{
-private:
+public:
     int type_block[19][4][4] = {
         {
             {0,0,0,0},
@@ -135,9 +135,6 @@ private:
             {0,1,1,0}
         }
     };
-
-public:
-    
     void fill_block(int x, int y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12]){
         for (int i = 3; i > -1; i--){
             for (int j = 0; j < 4; j++){
@@ -215,6 +212,8 @@ public:
     int index_type;
     int color_type;
     queue<int> row_full;
+    queue<int> list_index;
+    queue<int> list_color;
 
     void create(){
         for (int i = 0; i < 23; i++){
@@ -227,14 +226,20 @@ public:
         for (int i = 0; i < 14; i++) board[23][i] = 1;
         index_type = rd_block();
         color_type = rd_color();
+        list_index.push(rd_block());
+        list_color.push(rd_color());
         X = 3;
         Y = (index_type == 0? 4 : 5);
         fill_block(X,Y,index_type,color_type,board,board_color);
     }
 
     void reset(){
-        index_type = rd_block();
-        color_type = rd_color();
+        index_type = list_index.front();
+        color_type = list_color.front();
+        list_index.push(rd_block());
+        list_color.push(rd_color());
+        list_index.pop();
+        list_color.pop();
         X = 3;
         Y = (index_type == 0? 4 : 5);
         fill_block(X,Y,index_type,color_type,board,board_color);
@@ -278,7 +283,6 @@ public:
         list_color1.push(t_c);
         list_color2.push(t_c);
     }
-
     void reset1(){
         X1 = 3;
         Y1 = 5;
@@ -788,9 +792,28 @@ private:
     //Bảng và khối
     SDL_Texture* board;
     SDL_Texture* block[6];
+    //Bảng next block và score
+    SDL_Texture* next1;
+    SDL_Texture* next2;
+
+    SDL_Texture* score1;
+    SDL_Texture* score2;
+    //Bảng tỉ số mode 2 player
+    SDL_Texture* win2;
+    //Pause game
+    SDL_Texture* pause;
 
     int w_board, h_board;
     int w_block, h_block;
+
+    int w_next1, h_next1;
+    int w_next2, h_next2;
+    int w_score1, h_score1;
+    int w_score2, h_score2;
+
+    int w_win2, h_win2;
+
+    int w_pause, h_pause;
 
     //Tọa độ các bảng và các khối
     SDL_Rect crd_board1;
@@ -799,6 +822,21 @@ private:
     SDL_Rect crd_block1[24][12];
     SDL_Rect crd_block2[24][12];
     SDL_Rect crd_block3[24][12];
+
+    SDL_Rect crd_next1;
+    SDL_Rect crd_next2;
+
+    SDL_Rect crd_score1;
+    SDL_Rect crd_score2;
+
+    SDL_Rect crd_win2;
+    //Tọa độ khối next
+    SDL_Rect crd_next_block[3][4][4];
+    SDL_Rect crd_next_block1[3][4][4];
+    SDL_Rect crd_next_block2[3][4][4];
+
+    //Tọa độ nút pause
+    SDL_Rect crd_pause;
 
     //Lưu thời gian nhấn key
     map<SDL_Scancode, Uint32> key_hold;
@@ -876,11 +914,26 @@ public:
         block[4] = loadTexture("graphic/gameplay/green.png");
         block[5] = loadTexture("graphic/gameplay/purple.png");
 
+        next1 = loadTexture("graphic/gameplay1/next1.png");
+
+        score1 = loadTexture("graphic/gameplay1/score1.png");
+
+        pause = loadTexture("graphic/menu/pause.png");
+
         //Kích thước bảng, khối
         h_board = displayMode.h*148/150;
         w_board = h_board*78/148;
         w_block = h_block = h_board*7/148;
-        cout << h_board << " " << w_board << " " << w_block << " " << h_block;
+        //Kích thước bảng next block
+        w_next1 = h_next1 = displayMode.h*51/150;
+
+        //Kích thước bảng score
+        w_score1 = displayMode.h*51/150;
+        h_score1 = displayMode.h*29/150;
+
+        //Kích thước nút pause
+        w_pause = displayMode.h*12/150;
+        h_pause = displayMode.h*11/150;
 
         //Tọa độ, thuộc tính của bảng, khối
         crd_board1 = {
@@ -925,6 +978,51 @@ public:
                 };
             }
         }
+        //Tọa độ bảng next block và khối next block
+        crd_next1 = {
+            displayMode.h*23/150,
+            displayMode.h*78/150,
+            w_next1,
+            h_next1
+        };
+        for (int i = 0; i < 4; i++){//Tọa độ khối next của 3 nhóm block để căn giữa từng loại
+            for (int j = 0; j < 4; j++){
+                crd_next_block[0][i][j] = {
+                    displayMode.h*31/150+w_block*j,
+                    displayMode.h*88/150+h_block*i,
+                    w_block,
+                    h_block
+                };
+                crd_next_block[1][i][j] = {
+                    displayMode.h*38/150+w_block*j,
+                    displayMode.h*92/150+h_block*i,
+                    w_block,
+                    h_block
+                };
+                crd_next_block[2][i][j] = {
+                    displayMode.h*35/150+w_block*j,
+                    displayMode.h*88/150+h_block*i,
+                    w_block,
+                    h_block                    
+                };
+            }
+        }
+
+        //Tọa độ bảng score
+        crd_score1 = {
+            displayMode.w*216/300,
+            displayMode.h*22/150,
+            w_score1,
+            h_score1
+        };
+
+        //Tọa độ nút pause
+        crd_pause = {
+            displayMode.w/150,
+            displayMode.w/150,
+            w_pause,
+            h_pause
+        };
     }
     //Tạo texture ảnh bất kì
     SDL_Texture* loadTexture(const string& path){
@@ -949,6 +1047,26 @@ public:
             for (int j = 1; j < 11; j++){
                 if (board_color[i][j] != 0){
                     SDL_RenderCopy(renderer,block[board_color[i][j]],nullptr,&crd_block[i][j]);
+                }
+            }
+        }
+    }
+    //Vẽ thông báo khối tiếp theo
+    void draw_next_block(Data data, int t, int t_c, SDL_Rect crd_n[3][4][4]){
+        int arr1[] = {0,3,5,7,9,11,13,15,17,18};
+
+        for (int i = 0; i < 4; i++){
+            for (int j = 0; j < 4; j++){
+                if (data.type_block[t][i][j]){
+                    if (find(begin(arr1),end(arr1),t) != end(arr1)){
+                        SDL_RenderCopy(renderer,block[t_c],nullptr,&crd_n[2][i][j]);
+                    }
+                    else if (t == 1){
+                        SDL_RenderCopy(renderer,block[t_c],nullptr,&crd_n[1][i][j]);
+                    }
+                    else{
+                        SDL_RenderCopy(renderer,block[t_c],nullptr,&crd_n[0][i][j]);
+                    }
                 }
             }
         }
@@ -1052,18 +1170,40 @@ public:
             SDL_RenderCopy(renderer, board, nullptr, &crd_board1);
             draw_block(one.board_color,crd_block1);
 
+            SDL_RenderCopy(renderer, next1, nullptr, &crd_next1);
+            draw_next_block(data,one.list_index.front(),one.list_color.front(),crd_next_block);
+
+            SDL_RenderCopy(renderer,score1,nullptr,&crd_score1);
+
+            SDL_RenderCopy(renderer,pause,nullptr,&crd_pause);
+
             //Update màn hình mới
             SDL_RenderPresent(renderer);
 
-            SDL_Delay(8);
+            SDL_Delay(8); //120fps
         }
     }
     //Thoát SDL
     ~Interaction(){
+        //Xóa các block
         for (int i = 0; i < 6; i++){
             SDL_DestroyTexture(block[i]);
         }
+        //Xóa background
         SDL_DestroyTexture(backgroundTexture);
+
+        //Xóa các ảnh khác
+        SDL_DestroyTexture(next1);
+        SDL_DestroyTexture(next2);
+
+        SDL_DestroyTexture(score1);
+        SDL_DestroyTexture(score2);
+
+        SDL_DestroyTexture(win2);
+
+        SDL_DestroyTexture(pause);
+
+        //Xóa cửa sổ màn hình
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         IMG_Quit();
