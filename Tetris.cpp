@@ -7,7 +7,7 @@
 #include <map>
 using namespace std;
 
-#define MAX 10
+#define MAX 20
 
 int rd_block(){
     return rand()%19;
