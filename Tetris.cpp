@@ -3,6 +3,7 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <string>
 #include <queue>
 #include <map>
 using namespace std;
@@ -178,7 +179,7 @@ public:
             }
         }
     }
-    void delete_row(int x, int y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12], queue<int> &q){
+    int delete_row(int x, int y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12], queue<int> &q){
         delete_oblock(x,y,t,board,board_color);
         int cnt = 0; //Đếm số dòng đã xóa
         while (!q.empty()){
@@ -194,6 +195,7 @@ public:
             cnt++;
         }
         fill_block(x,y,t,t_c,board,board_color);
+        return cnt;
     }
     bool loss(int board[24][14]){
         for (int i = 1; i < 11; i++){
@@ -796,24 +798,33 @@ private:
     SDL_Texture* next1;
     SDL_Texture* next2;
 
-    SDL_Texture* score1;
-    SDL_Texture* score2;
+    SDL_Texture* scoreboard1;
+    SDL_Texture* scoreboard2;
     //Bảng tỉ số mode 2 player
     SDL_Texture* win2;
     //Pause game
     SDL_Texture* pause;
+    //Numbers
+    SDL_Texture* number[10];
 
     int w_board, h_board;
     int w_block, h_block;
 
     int w_next1, h_next1;
     int w_next2, h_next2;
-    int w_score1, h_score1;
-    int w_score2, h_score2;
+    int w_scoreboard1, h_scoreboard1;
+    int w_scoreboard2, h_scoreboard2;
 
     int w_win2, h_win2;
 
     int w_pause, h_pause;
+
+    int w_number[10], h_number[10];
+
+    //Điểm của player
+    int score = 0;
+    int score1 = 0;
+    int score2 = 0;
 
     //Tọa độ các bảng và các khối
     SDL_Rect crd_board1;
@@ -826,8 +837,8 @@ private:
     SDL_Rect crd_next1;
     SDL_Rect crd_next2;
 
-    SDL_Rect crd_score1;
-    SDL_Rect crd_score2;
+    SDL_Rect crd_scoreboard1;
+    SDL_Rect crd_scoreboard2;
 
     SDL_Rect crd_win2;
     //Tọa độ khối next
@@ -916,9 +927,13 @@ public:
 
         next1 = loadTexture("graphic/gameplay1/next1.png");
 
-        score1 = loadTexture("graphic/gameplay1/score1.png");
+        scoreboard1 = loadTexture("graphic/gameplay1/score1.png");
 
         pause = loadTexture("graphic/menu/pause.png");
+    
+        for (int i = 0; i < 10; i++){
+            number[i] = loadTexture("graphic/numbers/"+to_string(i)+".png");
+        }
 
         //Kích thước bảng, khối
         h_board = displayMode.h*148/150;
@@ -928,12 +943,23 @@ public:
         w_next1 = h_next1 = displayMode.h*51/150;
 
         //Kích thước bảng score
-        w_score1 = displayMode.h*51/150;
-        h_score1 = displayMode.h*29/150;
+        w_scoreboard1 = displayMode.h*51/150;
+        h_scoreboard1 = displayMode.h*29/150;
 
         //Kích thước nút pause
         w_pause = displayMode.h*12/150;
         h_pause = displayMode.h*11/150;
+
+        //Kích thước các số
+        for (int i = 0; i < 10; i++){
+            if (i == 1){
+                w_number[i] = displayMode.h*3/150;
+            }
+            else {
+                w_number[i] = displayMode.h*4/150;
+            }
+            h_number[i] = displayMode.h*5/150;
+        }
 
         //Tọa độ, thuộc tính của bảng, khối
         crd_board1 = {
@@ -1008,12 +1034,12 @@ public:
             }
         }
 
-        //Tọa độ bảng score
-        crd_score1 = {
-            displayMode.w*216/300,
+        //Tọa độ bảng scoreboard
+        crd_scoreboard1 = {
+            displayMode.h*195/150,
             displayMode.h*22/150,
-            w_score1,
-            h_score1
+            w_scoreboard1,
+            h_scoreboard1
         };
 
         //Tọa độ nút pause
@@ -1071,6 +1097,71 @@ public:
             }
         }
     }
+
+    //Tính tọa độ các chữ số
+    void cal_crd_num(SDL_Rect *crd_num, int n, string score){
+        int range_x = 0;
+        for (int i = 0; i < n; i++){
+            if (score[i] == '1'){
+                range_x += 3;
+            }
+            else{
+                range_x += 4;
+            }
+            range_x += (i < n-1? 1 : 0);
+        }
+        int st_crdx = 195+(51-range_x)/2;
+        for (int i = 0; i < n; i++){
+            string str(1, score[i]);
+            crd_num[i] = {
+                displayMode.h*st_crdx/150,
+                displayMode.h*37/150,
+                w_number[stoi(str)],
+                h_number[stoi(str)]
+            };
+            st_crdx += (score[i] == '1'? 4 : 5);
+        }
+    }
+
+    //Viết điểm
+    void write_score(int score){
+        string sscore = to_string(score);
+        int n = sscore.size();
+        SDL_Rect crd_number[n];
+        cal_crd_num(crd_number,n,sscore);
+
+        for (int i = 0; i < n; i++){
+            string str(1, sscore[i]);
+            SDL_RenderCopy(renderer,number[stoi(str)],nullptr,&crd_number[i]);
+        }
+    }
+
+    //Tính điểm
+    int scoring(int cnt){
+        if (cnt == 1){
+            return 100;
+        }
+        else if (cnt == 2){
+            return 250;
+        }
+        else if (cnt == 3){
+            return 500;
+        }
+        else{
+            return 800;
+        }
+    }
+
+    //Tính level
+    int cal_level(int score){
+        for (int i = 0, p = 3000; i < 6; i++, p += 3000+1000*i){
+            if (score < p){
+                return i;
+            }
+        }
+        return 6;
+    }
+
     //Mode 1 player
     void mode_one_player(Data data, One one, Update update, Check_update check_update){
         //Khởi tạo game
@@ -1150,11 +1241,15 @@ public:
                 else{
                     if (data.loss(one.board)){
                         one.create();
+                        score = 0;
+                        level = 0;
                     }
                     else{
                         one.reset();
                         if (data.check(one.board,one.row_full)){
-                            data.delete_row(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color,one.row_full);
+                            int cnt_row = data.delete_row(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color,one.row_full);
+                            score += scoring(cnt_row);
+                            level = cal_level(score);
                         }
                     }
                 }
@@ -1172,7 +1267,8 @@ public:
             SDL_RenderCopy(renderer, next1, nullptr, &crd_next1);
             draw_next_block(data,one.list_index.front(),one.list_color.front(),crd_next_block);
 
-            SDL_RenderCopy(renderer,score1,nullptr,&crd_score1);
+            SDL_RenderCopy(renderer,scoreboard1,nullptr,&crd_scoreboard1);
+            write_score(score);
 
             SDL_RenderCopy(renderer,pause,nullptr,&crd_pause);
 
@@ -1195,12 +1291,16 @@ public:
         SDL_DestroyTexture(next1);
         SDL_DestroyTexture(next2);
 
-        SDL_DestroyTexture(score1);
-        SDL_DestroyTexture(score2);
+        SDL_DestroyTexture(scoreboard1);
+        SDL_DestroyTexture(scoreboard2);
 
         SDL_DestroyTexture(win2);
 
         SDL_DestroyTexture(pause);
+
+        for (int i = 0; i < 10; i++){
+            SDL_DestroyTexture(number[i]);
+        }
 
         //Xóa cửa sổ màn hình
         SDL_DestroyRenderer(renderer);
