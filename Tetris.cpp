@@ -1078,8 +1078,7 @@ public:
         Uint32 fall_time = SDL_GetTicks();
 
         bool running = true;
-        while (running) {
-            Uint32 frameStart = SDL_GetTicks();
+        while (running){
             SDL_Event event;
             while (SDL_PollEvent(&event)){
                 // Kiểm tra sự kiện thoát
