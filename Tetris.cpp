@@ -806,7 +806,15 @@ private:
     SDL_Texture* pause;
     //Numbers
     SDL_Texture* number[10];
+    //Bảng thua
+    SDL_Texture* end1;
+    SDL_Texture* end2;
 
+    //Các nút
+    SDL_Texture* try_again[2];
+    SDL_Texture* exit[2];
+
+    //Kích thước
     int w_board, h_board;
     int w_block, h_block;
 
@@ -820,6 +828,12 @@ private:
     int w_pause, h_pause;
 
     int w_number[10], h_number[10];
+
+    int w_end1, h_end1;
+    int w_end2, h_end2;
+
+    int w_try_again, h_try_again;
+    int w_exit, h_exit;
 
     //Điểm của player
     int score = 0;
@@ -849,6 +863,14 @@ private:
     //Tọa độ nút pause
     SDL_Rect crd_pause;
 
+    //Tọa độ bảng end
+    SDL_Rect crd_end1;
+    SDL_Rect crd_end2;
+
+    //Tọa độ nút
+    SDL_Rect crd_try_again;
+    SDL_Rect crd_exit;
+
     //Lưu thời gian nhấn key
     map<SDL_Scancode, Uint32> key_hold;
 
@@ -868,6 +890,14 @@ private:
         SDL_SCANCODE_DOWN,
         SDL_SCANCODE_RIGHT,
     };
+
+    //val bool thua
+    bool loss = false;
+
+    //chọn ảnh button khi click nút
+    map<string, int> clicking;
+    //kiểm tra button vừa được click
+    map<string, bool> isPressed;
 
 public:
     //Hàm tạo
@@ -924,42 +954,45 @@ public:
         block[3] = loadTexture("graphic/gameplay/yellow.png");
         block[4] = loadTexture("graphic/gameplay/green.png");
         block[5] = loadTexture("graphic/gameplay/purple.png");
-
         next1 = loadTexture("graphic/gameplay1/next1.png");
-
         scoreboard1 = loadTexture("graphic/gameplay1/score1.png");
-
         pause = loadTexture("graphic/menu/pause.png");
-    
         for (int i = 0; i < 10; i++){
             number[i] = loadTexture("graphic/numbers/"+to_string(i)+".png");
         }
+        end1 = loadTexture("graphic/menu/your_score.png");
+
+        loadTextureButton(try_again,"try_again");
+        loadTextureButton(exit,"exit");
 
         //Kích thước bảng, khối
-        h_board = displayMode.h*148/150;
-        w_board = h_board*78/148;
-        w_block = h_block = h_board*7/148;
+        cal_size(w_board,h_board,78,148);
+        cal_size(w_block,h_block,7,7);
         //Kích thước bảng next block
-        w_next1 = h_next1 = displayMode.h*51/150;
+        cal_size(w_next1,h_next1,51,51);
 
         //Kích thước bảng score
-        w_scoreboard1 = displayMode.h*51/150;
-        h_scoreboard1 = displayMode.h*29/150;
+        cal_size(w_scoreboard1,h_scoreboard1,51,29);
 
         //Kích thước nút pause
-        w_pause = displayMode.h*12/150;
-        h_pause = displayMode.h*11/150;
+        cal_size(w_pause,h_pause,12,11);
 
         //Kích thước các số
         for (int i = 0; i < 10; i++){
             if (i == 1){
-                w_number[i] = displayMode.h*3/150;
+                cal_size(w_number[i],h_number[i],3,5);
             }
-            else {
-                w_number[i] = displayMode.h*4/150;
+            else{
+                cal_size(w_number[i],h_number[i],4,5);
             }
-            h_number[i] = displayMode.h*5/150;
         }
+
+        //Kích thước bảng end
+        cal_size(w_end1,h_end1,96,51);
+
+        //Kích thước các nút
+        cal_size(w_try_again,h_try_again,53,15);
+        cal_size(w_exit,h_exit,31,15);
 
         //Tọa độ, thuộc tính của bảng, khối
         crd_board1 = {
@@ -1005,12 +1038,8 @@ public:
             }
         }
         //Tọa độ bảng next block và khối next block
-        crd_next1 = {
-            displayMode.h*23/150,
-            displayMode.h*78/150,
-            w_next1,
-            h_next1
-        };
+        get_crd(crd_next1,w_next1,h_next1,23,78);
+
         for (int i = 0; i < 4; i++){//Tọa độ khối next của 3 nhóm block để căn giữa từng loại
             for (int j = 0; j < 4; j++){
                 crd_next_block[0][i][j] = {
@@ -1035,20 +1064,17 @@ public:
         }
 
         //Tọa độ bảng scoreboard
-        crd_scoreboard1 = {
-            displayMode.h*195/150,
-            displayMode.h*22/150,
-            w_scoreboard1,
-            h_scoreboard1
-        };
+        get_crd(crd_scoreboard1,w_scoreboard1,h_scoreboard1,195,22);
 
         //Tọa độ nút pause
-        crd_pause = {
-            displayMode.w/150,
-            displayMode.w/150,
-            w_pause,
-            h_pause
-        };
+        get_crd(crd_pause,w_pause,h_pause,1,1);
+
+        //tọa độ bảng end
+        get_crd_setting(crd_end1,w_end1,h_end1);
+
+        //Tọa độ các nút
+        get_crd(crd_try_again,w_try_again,h_try_again,91,80);
+        get_crd(crd_exit,w_exit,h_exit,145,80);
     }
     //Tạo texture ảnh bất kì
     SDL_Texture* loadTexture(const string& path){
@@ -1066,6 +1092,11 @@ public:
         }
 
         return texture;
+    }
+    //Tạo texture ảnh nút bất kì
+    void loadTextureButton(SDL_Texture* button[2], string name){
+        button[0] = loadTexture("graphic/menu/"+name+".png");
+        button[1] = loadTexture("graphic/menu/"+name+"_hold.png");
     }
     //Vẽ các khối ra màn hình
     void draw_block(int board_color[24][12], SDL_Rect crd_block[24][12]){
@@ -1098,8 +1129,33 @@ public:
         }
     }
 
+    //Tính kích thước các ảnh
+    void cal_size(int &w, int &h, int w_r, int h_r){
+        w = displayMode.h*w_r/150;
+        h = displayMode.h*h_r/150;
+    }
+
+    //Tính tọa độ các màn hình setting
+    void get_crd_setting(SDL_Rect &name,int w, int h){
+        name = {
+            (displayMode.w-w)/2,
+            (displayMode.h-h)/2,
+            w,
+            h,
+        };
+    }
+    //Tính tọa độ các ảnh khác
+    void get_crd(SDL_Rect &name, int w, int h, int crdx, int crdy){
+        name = {
+            displayMode.h*crdx/150,
+            displayMode.h*crdy/150,
+            w,
+            h
+        };
+    }
+
     //Tính tọa độ các chữ số
-    void cal_crd_num(SDL_Rect *crd_num, int n, string score){
+    void cal_crd_num(SDL_Rect *crd_num, int n, string score,int t){
         int range_x = 0;
         for (int i = 0; i < n; i++){
             if (score[i] == '1'){
@@ -1110,12 +1166,24 @@ public:
             }
             range_x += (i < n-1? 1 : 0);
         }
-        int st_crdx = 195+(51-range_x)/2;
+        int x,y,w;
+        if (t == 1){
+            x = 195;
+            y = 37;
+            w = 51;
+        }
+        else if (t == 2){
+            x = 86;
+            y = 71;
+            w = 96;
+        }
+        int st_crdx = x+(w-range_x)/2;
+        int crdy = y;
         for (int i = 0; i < n; i++){
             string str(1, score[i]);
             crd_num[i] = {
                 displayMode.h*st_crdx/150,
-                displayMode.h*37/150,
+                displayMode.h*crdy/150,
                 w_number[stoi(str)],
                 h_number[stoi(str)]
             };
@@ -1124,12 +1192,11 @@ public:
     }
 
     //Viết điểm
-    void write_score(int score){
+    void write_score(int score, int t){
         string sscore = to_string(score);
         int n = sscore.size();
         SDL_Rect crd_number[n];
-        cal_crd_num(crd_number,n,sscore);
-
+        cal_crd_num(crd_number,n,sscore,t);
         for (int i = 0; i < n; i++){
             string str(1, sscore[i]);
             SDL_RenderCopy(renderer,number[stoi(str)],nullptr,&crd_number[i]);
@@ -1160,6 +1227,11 @@ public:
             }
         }
         return 6;
+    }
+
+    //kiểm tra click button
+    bool contains(int x, int y, SDL_Rect crd){
+        return (x >= crd.x && x <= crd.x+crd.w && y >= crd.y && y <= crd.y+crd.h);
     }
 
     //Mode 1 player
@@ -1208,52 +1280,82 @@ public:
                         key_hold.erase(event.key.keysym.scancode);
                     }
                 }
+                else if (loss && event.type == SDL_MOUSEBUTTONDOWN){
+                    if (contains(event.button.x,event.button.y,crd_try_again)){
+                        clicking["try_again"] = 1;
+                    }
+                    else if (contains(event.button.x,event.button.y,crd_exit)){
+                        clicking["exit"] = 1;
+                    }
+                }
+                else if (event.type == SDL_MOUSEBUTTONUP){
+                    if (clicking["try_again"] == 1){
+                        clicking["try_again"] = 0;
+                        isPressed["try_again"] = true;
+                    }
+                    else if (clicking["exit"] == 1){
+                        clicking["exit"] = 0;
+                        isPressed["exit"] = true;
+                    }
+                }
             }
             //Kiểm tra phím đang được giữ
-            if ((keyState[keyList[0]] || keyState[keyList[3]]) && check_update.move_l(one.X,one.Y,one.index_type,one.board)){
-                SDL_Scancode key = (keyState[keyList[0]]? keyList[0] : keyList[3]);
-                if (SDL_GetTicks()-key_hold[key] >= hold_time){
-                    update.move_l(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
-                    key_hold[key] = SDL_GetTicks();
+            if (!loss){
+                if ((keyState[keyList[0]] || keyState[keyList[3]]) && check_update.move_l(one.X,one.Y,one.index_type,one.board)){
+                    SDL_Scancode key = (keyState[keyList[0]]? keyList[0] : keyList[3]);
+                    if (SDL_GetTicks()-key_hold[key] >= hold_time){
+                        update.move_l(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                        key_hold[key] = SDL_GetTicks();
+                    }
                 }
-            }
-            if ((keyState[keyList[2]] || keyState[keyList[5]]) && check_update.move_r(one.X,one.Y,one.index_type,one.board)){
-                SDL_Scancode key = (keyState[keyList[2]]? keyList[2] : keyList[5]);
-                if (SDL_GetTicks()-key_hold[key] >= hold_time){
-                    update.move_r(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
-                    key_hold[key] = SDL_GetTicks();
+                if ((keyState[keyList[2]] || keyState[keyList[5]]) && check_update.move_r(one.X,one.Y,one.index_type,one.board)){
+                    SDL_Scancode key = (keyState[keyList[2]]? keyList[2] : keyList[5]);
+                    if (SDL_GetTicks()-key_hold[key] >= hold_time){
+                        update.move_r(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                        key_hold[key] = SDL_GetTicks();
+                    }
                 }
-            }
-            if ((keyState[keyList[1]] || keyState[keyList[4]]) && check_update.fall(one.X,one.Y,one.index_type,one.board)){
-                SDL_Scancode key = (keyState[keyList[1]]? keyList[1] : keyList[4]);
-                if (SDL_GetTicks()-key_hold[key] >= fall_levels[6]){
-                    update.fall(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
-                    key_hold[key] = SDL_GetTicks();
-                }
-            }
-            //Kiểm tra thời gian rơi
-            if (SDL_GetTicks()-fall_time >= fall_levels[level]){
-                if (check_update.fall(one.X,one.Y,one.index_type,one.board)){
-                    if (!(keyState[keyList[1]] || keyState[keyList[4]])){
+                if ((keyState[keyList[1]] || keyState[keyList[4]]) && check_update.fall(one.X,one.Y,one.index_type,one.board)){
+                    SDL_Scancode key = (keyState[keyList[1]]? keyList[1] : keyList[4]);
+                    if (SDL_GetTicks()-key_hold[key] >= fall_levels[6]){
                         update.fall(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                        key_hold[key] = SDL_GetTicks();
                     }
                 }
-                else{
-                    if (data.loss(one.board)){
-                        one.create();
-                        score = 0;
-                        level = 0;
-                    }
-                    else{
-                        one.reset();
-                        if (data.check(one.board,one.row_full)){
-                            int cnt_row = data.delete_row(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color,one.row_full);
-                            score += scoring(cnt_row);
-                            level = cal_level(score);
+                //Kiểm tra thời gian rơi
+                if (SDL_GetTicks()-fall_time >= fall_levels[level]){
+                    if (check_update.fall(one.X,one.Y,one.index_type,one.board)){
+                        if (!(keyState[keyList[1]] || keyState[keyList[4]])){
+                            update.fall(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
                         }
                     }
+                    else{
+                        if (data.loss(one.board)){
+                            loss = true;
+                        }
+                        else{
+                            one.reset();
+                            if (data.check(one.board,one.row_full)){
+                                int cnt_row = data.delete_row(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color,one.row_full);
+                                score += scoring(cnt_row);
+                                level = cal_level(score);
+                            }
+                        }
+                    }
+                    fall_time = SDL_GetTicks();
                 }
-                fall_time = SDL_GetTicks();
+            }
+
+            if (isPressed["try_again"]){
+                one.create();
+                score = 0;
+                level = 0;
+                isPressed["try_again"] = false;
+                loss = false;
+            }
+            else if (isPressed["exit"]){
+                running = false;
+                isPressed["exit"] = false;
             }
 
             //Xóa màn hình cũ
@@ -1268,9 +1370,19 @@ public:
             draw_next_block(data,one.list_index.front(),one.list_color.front(),crd_next_block);
 
             SDL_RenderCopy(renderer,scoreboard1,nullptr,&crd_scoreboard1);
-            write_score(score);
+
 
             SDL_RenderCopy(renderer,pause,nullptr,&crd_pause);
+            if (loss){
+                SDL_RenderCopy(renderer,end1,nullptr,&crd_end1);
+                SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again);
+                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit);
+                write_score(score,2);
+                write_score(0,1);
+            }
+            else{
+                write_score(score,1);
+            }
 
             //Update màn hình mới
             SDL_RenderPresent(renderer);
@@ -1280,27 +1392,26 @@ public:
     }
     //Thoát SDL
     ~Interaction(){
-        //Xóa các block
+        //Xóa các các ảnh
         for (int i = 0; i < 6; i++){
             SDL_DestroyTexture(block[i]);
         }
-        //Xóa background
         SDL_DestroyTexture(backgroundTexture);
-
-        //Xóa các ảnh khác
         SDL_DestroyTexture(next1);
         SDL_DestroyTexture(next2);
-
         SDL_DestroyTexture(scoreboard1);
         SDL_DestroyTexture(scoreboard2);
-
         SDL_DestroyTexture(win2);
-
         SDL_DestroyTexture(pause);
-
         for (int i = 0; i < 10; i++){
             SDL_DestroyTexture(number[i]);
         }
+        SDL_DestroyTexture(end1);
+        SDL_DestroyTexture(end2);
+        SDL_DestroyTexture(try_again[0]);
+        SDL_DestroyTexture(try_again[1]);
+        SDL_DestroyTexture(exit[0]);
+        SDL_DestroyTexture(exit[1]);
 
         //Xóa cửa sổ màn hình
         SDL_DestroyRenderer(renderer);
