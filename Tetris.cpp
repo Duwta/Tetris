@@ -802,17 +802,19 @@ private:
     SDL_Texture* scoreboard2;
     //Bảng tỉ số mode 2 player
     SDL_Texture* win2;
-    //Pause game
-    SDL_Texture* pause;
     //Numbers
     SDL_Texture* number[10];
     //Bảng thua
     SDL_Texture* end1;
     SDL_Texture* end2;
+    //Bảng menu
+    SDL_Texture* menu;
 
     //Các nút
+    SDL_Texture* pause[2];
     SDL_Texture* try_again[2];
     SDL_Texture* exit[2];
+    SDL_Texture* cntinue[2];
 
     //Kích thước
     int w_board, h_board;
@@ -825,15 +827,17 @@ private:
 
     int w_win2, h_win2;
 
-    int w_pause, h_pause;
-
     int w_number[10], h_number[10];
 
     int w_end1, h_end1;
     int w_end2, h_end2;
 
+    int w_menu, h_menu;
+
+    int w_pause, h_pause;
     int w_try_again, h_try_again;
     int w_exit, h_exit;
+    int w_cntinue, h_cntinue;
 
     //Điểm của player
     int score = 0;
@@ -860,16 +864,18 @@ private:
     SDL_Rect crd_next_block1[3][4][4];
     SDL_Rect crd_next_block2[3][4][4];
 
-    //Tọa độ nút pause
-    SDL_Rect crd_pause;
-
     //Tọa độ bảng end
     SDL_Rect crd_end1;
     SDL_Rect crd_end2;
 
+    //Tọa độ menu
+    SDL_Rect crd_menu;
+
     //Tọa độ nút
+    SDL_Rect crd_pause;
     SDL_Rect crd_try_again;
-    SDL_Rect crd_exit;
+    SDL_Rect crd_exit[2];
+    SDL_Rect crd_cntinue;
 
     //Lưu thời gian nhấn key
     map<SDL_Scancode, Uint32> key_hold;
@@ -956,14 +962,16 @@ public:
         block[5] = loadTexture("graphic/gameplay/purple.png");
         next1 = loadTexture("graphic/gameplay1/next1.png");
         scoreboard1 = loadTexture("graphic/gameplay1/score1.png");
-        pause = loadTexture("graphic/menu/pause.png");
         for (int i = 0; i < 10; i++){
             number[i] = loadTexture("graphic/numbers/"+to_string(i)+".png");
         }
         end1 = loadTexture("graphic/menu/your_score.png");
+        menu = loadTexture("graphic/menu/settings_window.png");
 
+        loadTextureButton(pause,"pause");
         loadTextureButton(try_again,"try_again");
         loadTextureButton(exit,"exit");
+        loadTextureButton(cntinue,"continue");
 
         //Kích thước bảng, khối
         cal_size(w_board,h_board,78,148);
@@ -973,9 +981,6 @@ public:
 
         //Kích thước bảng score
         cal_size(w_scoreboard1,h_scoreboard1,51,29);
-
-        //Kích thước nút pause
-        cal_size(w_pause,h_pause,12,11);
 
         //Kích thước các số
         for (int i = 0; i < 10; i++){
@@ -990,9 +995,14 @@ public:
         //Kích thước bảng end
         cal_size(w_end1,h_end1,96,51);
 
+        //Kích thước menu
+        cal_size(w_menu,h_menu,150,75);
+
         //Kích thước các nút
+        cal_size(w_pause,h_pause,12,11);
         cal_size(w_try_again,h_try_again,53,15);
         cal_size(w_exit,h_exit,31,15);
+        cal_size(w_cntinue,h_cntinue,51,15);
 
         //Tọa độ, thuộc tính của bảng, khối
         crd_board1 = {
@@ -1066,15 +1076,18 @@ public:
         //Tọa độ bảng scoreboard
         get_crd(crd_scoreboard1,w_scoreboard1,h_scoreboard1,195,22);
 
-        //Tọa độ nút pause
-        get_crd(crd_pause,w_pause,h_pause,1,1);
-
         //tọa độ bảng end
         get_crd_setting(crd_end1,w_end1,h_end1);
 
+        //Tọa độ menu
+        get_crd_setting(crd_menu,w_menu,h_menu);
+
         //Tọa độ các nút
+        get_crd(crd_pause,w_pause,h_pause,1,1);
         get_crd(crd_try_again,w_try_again,h_try_again,91,80);
-        get_crd(crd_exit,w_exit,h_exit,145,80);
+        get_crd(crd_exit[0],w_exit,h_exit,145,80);
+        get_crd(crd_cntinue,w_cntinue,h_cntinue,80,86);
+        get_crd(crd_exit[1],w_exit,h_exit,155,86);
     }
     //Tạo texture ảnh bất kì
     SDL_Texture* loadTexture(const string& path){
@@ -1250,10 +1263,7 @@ public:
                 }
                 // Kiểm tra phím nhấn
                 else if (event.type == SDL_KEYDOWN){
-                    if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
-                        running = false;
-                    }
-                    else if (find(begin(keyList),end(keyList),event.key.keysym.scancode) != end(keyList)){
+                    if (find(begin(keyList),end(keyList),event.key.keysym.scancode) != end(keyList)){
                         key_hold[event.key.keysym.scancode] = SDL_GetTicks();
                     }
                     else if (event.key.keysym.scancode == SDL_SCANCODE_W || event.key.keysym.scancode == SDL_SCANCODE_UP){
@@ -1280,12 +1290,25 @@ public:
                         key_hold.erase(event.key.keysym.scancode);
                     }
                 }
-                else if (loss && event.type == SDL_MOUSEBUTTONDOWN){
-                    if (contains(event.button.x,event.button.y,crd_try_again)){
-                        clicking["try_again"] = 1;
+                else if (event.type == SDL_MOUSEBUTTONDOWN){
+                    if (loss){
+                        if (contains(event.button.x,event.button.y,crd_try_again)){
+                            clicking["try_again"] = 1;
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_exit[0])){
+                            clicking["exit"] = 1;
+                        }
                     }
-                    else if (contains(event.button.x,event.button.y,crd_exit)){
-                        clicking["exit"] = 1;
+                    else if (!isPressed["pause"] && contains(event.button.x,event.button.y,crd_pause)){
+                        clicking["pause"] = 1;
+                    }
+                    else if (isPressed["pause"]){
+                        if (contains(event.button.x,event.button.y,crd_exit[1])){
+                            clicking["exit"] = 1;
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_cntinue)){
+                            clicking["continue"] = 1;
+                        }
                     }
                 }
                 else if (event.type == SDL_MOUSEBUTTONUP){
@@ -1293,14 +1316,22 @@ public:
                         clicking["try_again"] = 0;
                         isPressed["try_again"] = true;
                     }
-                    else if (clicking["exit"] == 1){
+                    if (clicking["exit"] == 1){
                         clicking["exit"] = 0;
                         isPressed["exit"] = true;
+                    }
+                    if (clicking["pause"] == 1){
+                        clicking["pause"] = 0;
+                        isPressed["pause"] = true;
+                    }
+                    if (clicking["continue"] == 1){
+                        clicking["continue"] = 0;
+                        isPressed["continue"] = true;
                     }
                 }
             }
             //Kiểm tra phím đang được giữ
-            if (!loss){
+            if (!loss && !isPressed["pause"]){
                 if ((keyState[keyList[0]] || keyState[keyList[3]]) && check_update.move_l(one.X,one.Y,one.index_type,one.board)){
                     SDL_Scancode key = (keyState[keyList[0]]? keyList[0] : keyList[3]);
                     if (SDL_GetTicks()-key_hold[key] >= hold_time){
@@ -1345,7 +1376,6 @@ public:
                     fall_time = SDL_GetTicks();
                 }
             }
-
             if (isPressed["try_again"]){
                 one.create();
                 score = 0;
@@ -1353,9 +1383,15 @@ public:
                 isPressed["try_again"] = false;
                 loss = false;
             }
-            else if (isPressed["exit"]){
+            if (isPressed["exit"]){
                 running = false;
                 isPressed["exit"] = false;
+                isPressed["pause"] = false;
+                loss = false;
+            }
+            if (isPressed["continue"]){
+                isPressed["pause"] = false;
+                isPressed["continue"] = false;
             }
 
             //Xóa màn hình cũ
@@ -1371,17 +1407,22 @@ public:
 
             SDL_RenderCopy(renderer,scoreboard1,nullptr,&crd_scoreboard1);
 
+            SDL_RenderCopy(renderer,pause[clicking["pause"]],nullptr,&crd_pause);
 
-            SDL_RenderCopy(renderer,pause,nullptr,&crd_pause);
             if (loss){
                 SDL_RenderCopy(renderer,end1,nullptr,&crd_end1);
                 SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again);
-                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit);
+                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[0]);
                 write_score(score,2);
                 write_score(0,1);
             }
             else{
                 write_score(score,1);
+            }
+            if (isPressed["pause"]){
+                SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
+                SDL_RenderCopy(renderer,cntinue[clicking["continue"]],nullptr,&crd_cntinue);
+                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[1]);
             }
 
             //Update màn hình mới
@@ -1402,16 +1443,20 @@ public:
         SDL_DestroyTexture(scoreboard1);
         SDL_DestroyTexture(scoreboard2);
         SDL_DestroyTexture(win2);
-        SDL_DestroyTexture(pause);
         for (int i = 0; i < 10; i++){
             SDL_DestroyTexture(number[i]);
         }
         SDL_DestroyTexture(end1);
         SDL_DestroyTexture(end2);
+        SDL_DestroyTexture(menu);
+        SDL_DestroyTexture(pause[0]);
+        SDL_DestroyTexture(pause[1]);
         SDL_DestroyTexture(try_again[0]);
         SDL_DestroyTexture(try_again[1]);
         SDL_DestroyTexture(exit[0]);
         SDL_DestroyTexture(exit[1]);
+        SDL_DestroyTexture(cntinue[0]);
+        SDL_DestroyTexture(cntinue[1]);
 
         //Xóa cửa sổ màn hình
         SDL_DestroyRenderer(renderer);
