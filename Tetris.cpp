@@ -136,7 +136,7 @@ public:
             {0,1,1,0}
         }
     };
-    void fill_block(int x, int y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12]){
+    void fill_block(int x, int y, int t, int t_c, int (&board)[25][14], int (&board_color)[25][12]){
         for (int i = 3; i > -1; i--){
             for (int j = 0; j < 4; j++){
                 if (type_block[t][i][j]){
@@ -152,8 +152,8 @@ public:
             }
         }
     }
-    bool check(int board[24][14], queue<int> &row_full){
-        for (int i = 22; i > 2; i--){
+    bool check(int board[25][14], queue<int> &row_full){
+        for (int i = 23; i > 2; i--){
             int cnt = 0;
             for (int j = 1; j < 11; j++){
                 if (board[i][j]) cnt++;
@@ -165,7 +165,7 @@ public:
         }
         return true;
     }
-    void delete_oblock(int x, int y, int t, int (&board)[24][14], int (&board_color)[24][12]){
+    void delete_oblock(int x, int y, int t, int (&board)[25][14], int (&board_color)[25][12]){
         for (int i = 3; i > -1; i--){
             for (int j = 0; j < 4; j++){
                 if (type_block[t][i][j]){
@@ -179,7 +179,7 @@ public:
             }
         }
     }
-    int delete_row(int x, int y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12], queue<int> &q){
+    int delete_row(int x, int y, int t, int t_c, int (&board)[25][14], int (&board_color)[25][12], queue<int> &q){
         delete_oblock(x,y,t,board,board_color);
         int cnt = 0; //Đếm số dòng đã xóa
         while (!q.empty()){
@@ -197,9 +197,9 @@ public:
         fill_block(x,y,t,t_c,board,board_color);
         return cnt;
     }
-    bool loss(int board[24][14]){
+    bool loss(int board[25][14]){
         for (int i = 1; i < 11; i++){
-            if (board[2][i]){
+            if (board[3][i]){
                 return true;
             }
         }
@@ -209,7 +209,7 @@ public:
 
 class One : public Data{
 public:
-    int board[24][14], board_color[24][12] = {0};
+    int board[25][14], board_color[25][12] = {0};
     int X, Y;
     int index_type;
     int color_type;
@@ -218,14 +218,14 @@ public:
     queue<int> list_color;
 
     void create(){
-        for (int i = 0; i < 23; i++){
+        for (int i = 0; i < 24; i++){
             board[i][0] = board[i][11] = board[i][12] = board[i][13] = 1;
             for (int j = 1; j < 11; j++){
                 board[i][j] = 0;
                 board_color[i][j] = 0;
             }
         }
-        for (int i = 0; i < 14; i++) board[23][i] = 1;
+        for (int i = 0; i < 14; i++) board[24][i] = 1;
         index_type = rd_block();
         color_type = rd_color();
         list_index.push(rd_block());
@@ -250,9 +250,9 @@ public:
 
 class Two : public Data{
 public:
-    int board1[24][14], board2[24][14];
-    int board_color1[24][12] = {0};
-    int board_color2[24][12] = {0};
+    int board1[25][14], board2[25][14];
+    int board_color1[25][12] = {0};
+    int board_color2[25][12] = {0};
     int X1, Y1, X2, Y2;
     int index_type1, index_type2;
     int color_type1, color_type2;
@@ -261,22 +261,26 @@ public:
     queue<int> row_full1, row_full2;
     
     void create(){
-        for (int i = 0; i < 23; i++){
+        for (int i = 0; i < 24; i++){
             board1[i][0] = board1[i][11] = board1[i][12] = board1[i][13] = 1;
             board2[i][0] = board2[i][11] = board2[i][12] = board2[i][13] = 1;
             for (int j = 1; j < 11; j++) board1[i][j] = board2[i][j] = 0;
         }
-        for (int i = 0; i < 14; i++) board1[23][i] = board2[23][i] = 1;
-        X1 = X2 = 3;
-        Y1 = Y2 = 5;
+        for (int i = 0; i < 14; i++) board1[24][i] = board2[24][i] = 1;
         int temp = rd_block();
+        index_type1 = index_type2 = temp;
+        temp = rd_color();
+        color_type1 = color_type2 = temp;
+        temp = rd_block();
         list_index1.push(temp);
         list_index2.push(temp);
-        index_type1 = index_type2 = temp;
         temp = rd_color();
         list_color1.push(temp);
         list_color2.push(temp);
-        color_type1 = color_type2 = temp;
+        X1 = X2 = 3;
+        Y1 = Y2 = (index_type1 == 0? 4 : 5);
+        fill_block(X1,Y1,index_type1,color_type1,board1,board_color1);
+        fill_block(X2,Y2,index_type2,color_type2,board2,board_color2);
     }
 
     void push(int t, int t_c){
@@ -286,45 +290,31 @@ public:
         list_color2.push(t_c);
     }
     void reset1(){
-        X1 = 3;
-        Y1 = 5;
+        index_type1 = list_index1.front();
+        color_type1 = list_color1.front();
+        push(rd_block(),rd_color());
         list_index1.pop();
         list_color1.pop();
-        if (list_index1.empty()){
-            index_type1 = rd_block();
-            color_type1 = rd_color();
-            push(index_type1,color_type1);
-        }
-        else{
-            index_type1 = list_index1.front();
-            color_type1 = list_color1.front();
-            push(rd_block(),rd_color());
-        }
+        X1 = 3;
+        Y1 = (index_type1 == 0? 4 : 5);
         fill_block(X1,Y1,index_type1,color_type1,board1,board_color1);
     }
 
     void reset2(){
-        X2 = 3;
-        Y2 = 5;
+        index_type2 = list_index2.front();
+        color_type2 = list_color2.front();
+        push(rd_block(),rd_color());
         list_index2.pop();
         list_color2.pop();
-        if (list_index2.empty()){
-            index_type2 = rd_block();
-            color_type2 = rd_color();
-            push(index_type2,color_type2);
-        }
-        else{
-            index_type2 = list_index2.front();
-            color_type2 = list_color2.front();
-            push(rd_block(),rd_color());
-        }
+        X2 = 3;
+        Y2 = (index_type2 == 0? 4 : 5);
         fill_block(X2,Y2,index_type2,color_type2,board2,board_color2);
     }
 };
 
 class Update : public Data{
 public:
-    void turn(int &x, int &y, int &t, int t_c, int (&board)[24][14], int (&board_color)[24][12]){
+    void turn(int &x, int &y, int &t, int t_c, int (&board)[25][14], int (&board_color)[25][12]){
         delete_oblock(x,y,t,board,board_color);
         int arr1[] = {1,11,13};
         int arr2[] = {5,9,17};
@@ -342,17 +332,17 @@ public:
         else if (t != 18) t += 1;
         fill_block(x,y,t,t_c,board,board_color);
     }
-    void fall(int &x, int &y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12]){
+    void fall(int &x, int &y, int t, int t_c, int (&board)[25][14], int (&board_color)[25][12]){
         delete_oblock(x,y,t,board,board_color);
         x++;
         fill_block(x,y,t,t_c,board,board_color);
     }
-    void move_l(int &x, int &y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12]){
+    void move_l(int &x, int &y, int t, int t_c, int (&board)[25][14], int (&board_color)[25][12]){
         delete_oblock(x,y,t,board,board_color);
         y--;
         fill_block(x,y,t,t_c,board,board_color);
     }
-    void move_r(int &x, int &y, int t, int t_c, int (&board)[24][14], int (&board_color)[24][12]){
+    void move_r(int &x, int &y, int t, int t_c, int (&board)[25][14], int (&board_color)[25][12]){
         delete_oblock(x,y,t,board,board_color);
         y++;
         fill_block(x,y,t,t_c,board,board_color);
@@ -361,7 +351,7 @@ public:
 
 class Check_update : public Data{
 public:
-    bool turn(int x, int y, int t, int board[24][14]){
+    bool turn(int x, int y, int t, int board[25][14]){
         int arr[MAX] = {-1};
         int k = 0;
         if (t == 0){
@@ -571,7 +561,7 @@ public:
         }
         return true;
     }
-    bool move_l(int x, int y, int t, int board[24][14]){
+    bool move_l(int x, int y, int t, int board[25][14]){
         int arr[MAX] = {-1};
         int k = 0;
         if (t == 0){
@@ -641,7 +631,7 @@ public:
         }
         return true;
     }
-    bool move_r(int x, int y, int t, int board[24][14]){
+    bool move_r(int x, int y, int t, int board[25][14]){
         int arr[MAX] = {-1};
         int k = 0;
         if (t == 0){
@@ -713,7 +703,7 @@ public:
         }
         return true;
     }
-    bool fall(int x, int y, int t, int board[24][14]){
+    bool fall(int x, int y, int t, int board[25][14]){
         int arr[MAX] = {-1};
         int k = 0;
         if (t == 0){
@@ -848,9 +838,9 @@ private:
     SDL_Rect crd_board1;
     SDL_Rect crd_board2;
     SDL_Rect crd_board3;
-    SDL_Rect crd_block1[24][12];
-    SDL_Rect crd_block2[24][12];
-    SDL_Rect crd_block3[24][12];
+    SDL_Rect crd_block1[25][12];
+    SDL_Rect crd_block2[25][12];
+    SDL_Rect crd_block3[25][12];
 
     SDL_Rect crd_next1;
     SDL_Rect crd_next2;
@@ -873,8 +863,8 @@ private:
 
     //Tọa độ nút
     SDL_Rect crd_pause;
-    SDL_Rect crd_try_again;
-    SDL_Rect crd_exit[2];
+    SDL_Rect crd_try_again[2];
+    SDL_Rect crd_exit[3];
     SDL_Rect crd_cntinue;
 
     //Lưu thời gian nhấn key
@@ -884,6 +874,8 @@ private:
     Uint32 hold_time = 100;
     Uint32 fall_levels[7] = {1000,800,500,200,100,50,20};
     int level = 0;
+    int level1 = 0;
+    int level2 = 0;
 
     //Lấy dữ liệu key đang nhấn trên bàn phím
     const Uint8* keyState = SDL_GetKeyboardState(NULL);
@@ -899,11 +891,18 @@ private:
 
     //val bool thua
     bool loss = false;
+    bool loss1 = false;
+    bool loss2 = false;
 
     //chọn ảnh button khi click nút
     map<string, int> clicking;
     //kiểm tra button vừa được click
     map<string, bool> isPressed;
+
+    //Xử lí khung hình
+    Uint32 frameTime; //Khoảng thời gian trong một khung hình
+    Uint32 frameStart; //Thời gian bắt đầu 1 khung hình
+    Uint32 frameDelay = 4; //240fps
 
 public:
     //Hàm tạo
@@ -961,11 +960,15 @@ public:
         block[4] = loadTexture("graphic/gameplay/green.png");
         block[5] = loadTexture("graphic/gameplay/purple.png");
         next1 = loadTexture("graphic/gameplay1/next1.png");
+        next2 = loadTexture("graphic/gameplay2/next2.png");
         scoreboard1 = loadTexture("graphic/gameplay1/score1.png");
+        scoreboard2 = loadTexture("graphic/gameplay2/score2.png");
+        win2 = loadTexture("graphic/gameplay2/win2.png");
         for (int i = 0; i < 10; i++){
             number[i] = loadTexture("graphic/numbers/"+to_string(i)+".png");
         }
-        end1 = loadTexture("graphic/menu/your_score.png");
+        end1 = loadTexture("graphic/gameplay1/your_score.png");
+        end2 = loadTexture("graphic/gameplay2/player's_scores.png");
         menu = loadTexture("graphic/menu/settings_window.png");
 
         loadTextureButton(pause,"pause");
@@ -978,9 +981,14 @@ public:
         cal_size(w_block,h_block,7,7);
         //Kích thước bảng next block
         cal_size(w_next1,h_next1,51,51);
+        cal_size(w_next2,h_next2,80,50);
 
         //Kích thước bảng score
         cal_size(w_scoreboard1,h_scoreboard1,51,29);
+        cal_size(w_scoreboard2,h_scoreboard2,72,28);
+
+        //Kích thước bảng end
+        cal_size(w_win2,h_win2,64,28);
 
         //Kích thước các số
         for (int i = 0; i < 10; i++){
@@ -994,6 +1002,7 @@ public:
 
         //Kích thước bảng end
         cal_size(w_end1,h_end1,96,51);
+        cal_size(w_end2,h_end2,150,100);
 
         //Kích thước menu
         cal_size(w_menu,h_menu,150,75);
@@ -1012,21 +1021,21 @@ public:
             h_board
         };
         crd_board2 = {
-            (displayMode.w/2-w_board)/2,
+            displayMode.w*15/266,
             (displayMode.h-h_board)/2,
             w_board,
             h_board
         };
         crd_board3 = {
-            (displayMode.w*3/2-w_board)/2,
+            displayMode.w*175/266,
             (displayMode.h-h_board)/2,
             w_board,
             h_board
         };
 
-        for (int i = 3; i < 23; i++){
+        for (int i = 4; i < 24; i++){
             for (int j = 1; j < 11; j++){
-                int x = i-2;
+                int x = i-3;
                 crd_block1[i][j] = {
                     displayMode.w/2+w_block*(-5+j-1),
                     displayMode.h/2+h_block*(-10+x-1),
@@ -1034,13 +1043,13 @@ public:
                     h_block
                 };
                 crd_block2[i][j] = {
-                    displayMode.w/4+w_block*(-5+j-1),
+                    displayMode.w*19/266+w_block*(j-1),
                     displayMode.h/2+h_block*(-10+x-1),
                     w_block,
                     h_block
                 };
                 crd_block3[i][j] = {
-                    displayMode.w*3/4+w_block*(-5+j-1),
+                    displayMode.w*179/266+w_block*(j-1),
                     displayMode.h/2+h_block*(-10+x-1),
                     w_block,
                     h_block
@@ -1049,23 +1058,24 @@ public:
         }
         //Tọa độ bảng next block và khối next block
         get_crd(crd_next1,w_next1,h_next1,23,78);
+        get_crd(crd_next2,w_next2,h_next2,94,51);
 
         for (int i = 0; i < 4; i++){//Tọa độ khối next của 3 nhóm block để căn giữa từng loại
             for (int j = 0; j < 4; j++){
                 crd_next_block[0][i][j] = {
-                    displayMode.h*31/150+w_block*j,
+                    displayMode.w*31/266+w_block*j,
                     displayMode.h*88/150+h_block*i,
                     w_block,
                     h_block
                 };
                 crd_next_block[1][i][j] = {
-                    displayMode.h*38/150+w_block*j,
+                    displayMode.w*38/266+w_block*j,
                     displayMode.h*92/150+h_block*i,
                     w_block,
                     h_block
                 };
                 crd_next_block[2][i][j] = {
-                    displayMode.h*35/150+w_block*j,
+                    displayMode.w*35/266+w_block*j,
                     displayMode.h*88/150+h_block*i,
                     w_block,
                     h_block                    
@@ -1075,19 +1085,26 @@ public:
 
         //Tọa độ bảng scoreboard
         get_crd(crd_scoreboard1,w_scoreboard1,h_scoreboard1,195,22);
+        get_crd(crd_scoreboard2,w_scoreboard2,h_scoreboard2,98,22);
+
+        //Tọa độ bảng win
+        get_crd(crd_win2,w_win2,h_win2,101,102);
 
         //tọa độ bảng end
         get_crd_setting(crd_end1,w_end1,h_end1);
+        get_crd_setting(crd_end2,w_end2,h_end2);
 
         //Tọa độ menu
         get_crd_setting(crd_menu,w_menu,h_menu);
 
         //Tọa độ các nút
         get_crd(crd_pause,w_pause,h_pause,1,1);
-        get_crd(crd_try_again,w_try_again,h_try_again,91,80);
+        get_crd(crd_try_again[0],w_try_again,h_try_again,91,80);
+        get_crd(crd_try_again[1],w_try_again,h_try_again,81,94);
         get_crd(crd_exit[0],w_exit,h_exit,145,80);
-        get_crd(crd_cntinue,w_cntinue,h_cntinue,80,86);
         get_crd(crd_exit[1],w_exit,h_exit,155,86);
+        get_crd(crd_exit[2],w_exit,h_exit,155,94);
+        get_crd(crd_cntinue,w_cntinue,h_cntinue,80,86);
     }
     //Tạo texture ảnh bất kì
     SDL_Texture* loadTexture(const string& path){
@@ -1112,8 +1129,8 @@ public:
         button[1] = loadTexture("graphic/menu/"+name+"_hold.png");
     }
     //Vẽ các khối ra màn hình
-    void draw_block(int board_color[24][12], SDL_Rect crd_block[24][12]){
-        for (int i = 3; i < 23; i++){
+    void draw_block(int board_color[25][12], SDL_Rect crd_block[25][12]){
+        for (int i = 4; i < 24; i++){
             for (int j = 1; j < 11; j++){
                 if (board_color[i][j] != 0){
                     SDL_RenderCopy(renderer,block[board_color[i][j]],nullptr,&crd_block[i][j]);
@@ -1121,6 +1138,7 @@ public:
             }
         }
     }
+
     //Vẽ thông báo khối tiếp theo
     void draw_next_block(Data data, int t, int t_c, SDL_Rect crd_n[3][4][4]){
         int arr1[] = {0,3,5,7,9,11,13,15,17,18};
@@ -1160,7 +1178,7 @@ public:
     //Tính tọa độ các ảnh khác
     void get_crd(SDL_Rect &name, int w, int h, int crdx, int crdy){
         name = {
-            displayMode.h*crdx/150,
+            displayMode.w*crdx/266,
             displayMode.h*crdy/150,
             w,
             h
@@ -1255,6 +1273,7 @@ public:
 
         bool running = true;
         while (running){
+            frameStart = SDL_GetTicks();
             SDL_Event event;
             while (SDL_PollEvent(&event)){
                 // Kiểm tra sự kiện thoát
@@ -1292,7 +1311,7 @@ public:
                 }
                 else if (event.type == SDL_MOUSEBUTTONDOWN){
                     if (loss){
-                        if (contains(event.button.x,event.button.y,crd_try_again)){
+                        if (contains(event.button.x,event.button.y,crd_try_again[0])){
                             clicking["try_again"] = 1;
                         }
                         else if (contains(event.button.x,event.button.y,crd_exit[0])){
@@ -1346,6 +1365,7 @@ public:
                         key_hold[key] = SDL_GetTicks();
                     }
                 }
+
                 if ((keyState[keyList[1]] || keyState[keyList[4]]) && check_update.fall(one.X,one.Y,one.index_type,one.board)){
                     SDL_Scancode key = (keyState[keyList[1]]? keyList[1] : keyList[4]);
                     if (SDL_GetTicks()-key_hold[key] >= fall_levels[6]){
@@ -1411,7 +1431,7 @@ public:
 
             if (loss){
                 SDL_RenderCopy(renderer,end1,nullptr,&crd_end1);
-                SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again);
+                SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again[0]);
                 SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[0]);
                 write_score(score,2);
                 write_score(0,1);
@@ -1428,7 +1448,266 @@ public:
             //Update màn hình mới
             SDL_RenderPresent(renderer);
 
-            SDL_Delay(8); //120fps
+            frameTime = SDL_GetTicks()-frameStart;
+            if (frameTime < frameDelay){
+                SDL_Delay(frameDelay-frameTime);
+            }
+        }
+    }
+
+    void mode_two_players(Data data, Two two, Update update, Check_update check_update){
+        //Khởi tạo game
+        two.create();
+        Uint32 fall_time1 = SDL_GetTicks();
+        Uint32 fall_time2 = SDL_GetTicks();
+
+        bool running = true;
+        while (running){
+            frameStart = SDL_GetTicks();
+            SDL_Event event;
+            while (SDL_PollEvent(&event)){
+                // Kiểm tra sự kiện thoát
+                if (event.type == SDL_QUIT){
+                    running = false;
+                }
+                // Kiểm tra phím nhấn
+                else if (event.type == SDL_KEYDOWN){
+                    if (find(begin(keyList),end(keyList),event.key.keysym.scancode) != end(keyList)){
+                        key_hold[event.key.keysym.scancode] = SDL_GetTicks();
+                    }
+                    if (event.key.keysym.scancode == SDL_SCANCODE_W){
+                        if (check_update.turn(two.X1,two.Y1,two.index_type1,two.board1)){
+                            update.turn(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                        }
+                    }
+                    if (event.key.keysym.scancode == SDL_SCANCODE_UP){
+                        if (check_update.turn(two.X2,two.Y2,two.index_type2,two.board2)){
+                            update.turn(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                        }
+                    }
+                }
+                //Kiểm tra phím thả
+                else if (event.type == SDL_KEYUP){
+                    if (event.key.keysym.scancode == keyList[0]){
+                        if (check_update.move_l(two.X1,two.Y1,two.index_type1,two.board1) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                            update.move_l(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                        }
+                        key_hold.erase(event.key.keysym.scancode);
+                    }
+                    else if (event.key.keysym.scancode == keyList[2]){
+                        if (check_update.move_r(two.X1,two.Y1,two.index_type1,two.board1) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                            update.move_r(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                        }
+                        key_hold.erase(event.key.keysym.scancode);
+                    }
+                    else if (event.key.keysym.scancode == keyList[1]){
+                        key_hold.erase(event.key.keysym.scancode);
+                    }
+                    if (event.key.keysym.scancode == keyList[3]){
+                        if (check_update.move_l(two.X2,two.Y2,two.index_type2,two.board2) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                            update.move_l(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                        }
+                        key_hold.erase(event.key.keysym.scancode);
+                    }
+                    else if (event.key.keysym.scancode == keyList[5]){
+                        if (check_update.move_r(two.X2,two.Y2,two.index_type2,two.board2) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                            update.move_r(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                        }
+                        key_hold.erase(event.key.keysym.scancode);
+                    }
+                    else if (event.key.keysym.scancode == keyList[4]){
+                        key_hold.erase(event.key.keysym.scancode);
+                    }
+                }
+                else if (event.type == SDL_MOUSEBUTTONDOWN){
+                    if (loss){
+                        if (contains(event.button.x,event.button.y,crd_try_again[1])){
+                            clicking["try_again"] = 1;
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_exit[2])){
+                            clicking["exit"] = 1;
+                        }
+                    }
+                    else if (!isPressed["pause"] && contains(event.button.x,event.button.y,crd_pause)){
+                        clicking["pause"] = 1;
+                    }
+                    else if (isPressed["pause"]){
+                        if (contains(event.button.x,event.button.y,crd_exit[1])){
+                            clicking["exit"] = 1;
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_cntinue)){
+                            clicking["continue"] = 1;
+                        }
+                    }
+                }
+                else if (event.type == SDL_MOUSEBUTTONUP){
+                    if (clicking["try_again"] == 1){
+                        clicking["try_again"] = 0;
+                        isPressed["try_again"] = true;
+                    }
+                    if (clicking["exit"] == 1){
+                        clicking["exit"] = 0;
+                        isPressed["exit"] = true;
+                    }
+                    if (clicking["pause"] == 1){
+                        clicking["pause"] = 0;
+                        isPressed["pause"] = true;
+                    }
+                    if (clicking["continue"] == 1){
+                        clicking["continue"] = 0;
+                        isPressed["continue"] = true;
+                    }
+                }
+            }
+            //Kiểm tra phím đang được giữ
+            if (!loss && !isPressed["pause"]){
+                if (!loss1){
+                    if ((keyState[keyList[0]]) && check_update.move_l(two.X1,two.Y1,two.index_type1,two.board1)){
+                        if (SDL_GetTicks()-key_hold[keyList[0]] >= hold_time){
+                            update.move_l(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            key_hold[keyList[0]] = SDL_GetTicks();
+                        }
+                    }
+                    if ((keyState[keyList[2]]) && check_update.move_r(two.X1,two.Y1,two.index_type1,two.board1)){
+                        if (SDL_GetTicks()-key_hold[keyList[2]] >= hold_time){
+                            update.move_r(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            key_hold[keyList[2]] = SDL_GetTicks();
+                        }
+                    }
+                    if ((keyState[keyList[1]]) && check_update.fall(two.X1,two.Y1,two.index_type1,two.board1)){
+                        if (SDL_GetTicks()-key_hold[keyList[1]] >= fall_levels[6]){
+                            update.fall(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            key_hold[keyList[1]] = SDL_GetTicks();
+                        }
+                    }
+                    //Kiểm tra thời gian rơi
+                    if (SDL_GetTicks()-fall_time1 >= fall_levels[level1]){
+                        if (check_update.fall(two.X1,two.Y1,two.index_type1,two.board1)){
+                            if (!keyState[keyList[1]]){
+                                update.fall(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            }
+                        }
+                        else{
+                            if (data.loss(two.board1)){
+                                loss1 = true;
+                            }
+                            else{
+                                two.reset1();
+                                if (data.check(two.board1,two.row_full1)){
+                                    int cnt_row = data.delete_row(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1,two.row_full1);
+                                    score1 += scoring(cnt_row);
+                                    level1 = cal_level(score1);
+                                }
+                            }
+                        }
+                        fall_time1 = SDL_GetTicks();
+                    }
+                }
+                if (!loss2){
+                    if ((keyState[keyList[3]]) && check_update.move_l(two.X2,two.Y2,two.index_type2,two.board2)){
+                        if (SDL_GetTicks()-key_hold[keyList[3]] >= hold_time){
+                            update.move_l(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            key_hold[keyList[3]] = SDL_GetTicks();
+                        }
+                    }
+                    if ((keyState[keyList[5]]) && check_update.move_r(two.X2,two.Y2,two.index_type2,two.board2)){
+                        if (SDL_GetTicks()-key_hold[keyList[5]] >= hold_time){
+                            update.move_r(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            key_hold[keyList[5]] = SDL_GetTicks();
+                        }
+                    }
+                    if ((keyState[keyList[4]]) && check_update.fall(two.X2,two.Y2,two.index_type2,two.board2)){
+                        if (SDL_GetTicks()-key_hold[keyList[4]] >= fall_levels[6]){
+                            update.fall(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            key_hold[keyList[4]] = SDL_GetTicks();
+                        }
+                    }
+                    //Kiểm tra thời gian rơi
+                    if (SDL_GetTicks()-fall_time2 >= fall_levels[level2]){
+                        if (check_update.fall(two.X2,two.Y2,two.index_type2,two.board2)){
+                            if (!keyState[keyList[4]]){
+                                update.fall(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            }
+                        }
+                        else{
+                            if (data.loss(two.board2)){
+                                loss2 = true;
+                            }
+                            else{
+                                two.reset2();
+                                if (data.check(two.board2,two.row_full2)){
+                                    int cnt_row = data.delete_row(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2,two.row_full2);
+                                    score2 += scoring(cnt_row);
+                                    level2 = cal_level(score2);
+                                }
+                            }
+                        }
+                        fall_time2 = SDL_GetTicks();
+                    }
+                }
+                if (loss1 && loss2){
+                    loss = true;
+                }
+            }
+
+            if (isPressed["try_again"]){
+                two.create();
+                score1 = score2 = 0;
+                level1 = level2 = 0;
+                isPressed["try_again"] = false;
+                loss = loss1 = loss2 = false;
+            }
+            if (isPressed["exit"]){
+                running = false;
+                isPressed["exit"] = false;
+                isPressed["pause"] = false;
+                loss = loss1 = loss2 = false;
+            }
+            if (isPressed["continue"]){
+                isPressed["pause"] = false;
+                isPressed["continue"] = false;
+            }
+
+            //Xóa màn hình cũ
+            SDL_RenderClear(renderer);
+
+            //Vẽ màn hình mới
+            SDL_RenderCopy(renderer,backgroundTexture,nullptr,nullptr);
+            SDL_RenderCopy(renderer,board,nullptr, &crd_board2);
+            SDL_RenderCopy(renderer,board,nullptr,&crd_board3);
+            draw_block(two.board_color1,crd_block2);
+            draw_block(two.board_color2,crd_block3);
+
+            SDL_RenderCopy(renderer,next2,nullptr,&crd_next2);
+            SDL_RenderCopy(renderer,scoreboard2,nullptr,&crd_scoreboard2);
+            SDL_RenderCopy(renderer,win2,nullptr,&crd_win2);
+            /*
+            draw_next_block(data,two.list_index.front(),two.list_color.front(),crd_next_block);
+
+            SDL_RenderCopy(renderer,scoreboard1,nullptr,&crd_scoreboard1);
+            */
+            SDL_RenderCopy(renderer,pause[clicking["pause"]],nullptr,&crd_pause);
+            if (loss){
+                SDL_RenderCopy(renderer,end2,nullptr,&crd_end2);
+                SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again[1]);
+                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[2]);
+            }
+            /*
+            else{
+                write_score(score,1);
+            */
+            if (isPressed["pause"]){
+                SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
+                SDL_RenderCopy(renderer,cntinue[clicking["continue"]],nullptr,&crd_cntinue);
+                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[1]);
+            }
+            //Update màn hình mới
+            SDL_RenderPresent(renderer);
+
+            frameTime = SDL_GetTicks()-frameStart;
+            if (frameTime < frameDelay){
+                SDL_Delay(frameDelay-frameTime);
+            }
         }
     }
     //Thoát SDL
@@ -1474,6 +1753,7 @@ int main(int argc, char* argv[]){
     Update update;
     Check_update check_update;
 
-    interaction.mode_one_player(data,one,update,check_update);
+    //interaction.mode_one_player(data,one,update,check_update);
+    interaction.mode_two_players(data,two,update,check_update);
     return 0;
 }
