@@ -264,7 +264,10 @@ public:
         for (int i = 0; i < 24; i++){
             board1[i][0] = board1[i][11] = board1[i][12] = board1[i][13] = 1;
             board2[i][0] = board2[i][11] = board2[i][12] = board2[i][13] = 1;
-            for (int j = 1; j < 11; j++) board1[i][j] = board2[i][j] = 0;
+            for (int j = 1; j < 11; j++){
+                board1[i][j] = board2[i][j] = 0;
+                board_color1[i][j] = board_color2[i][j] = 0;
+            }
         }
         for (int i = 0; i < 14; i++) board1[24][i] = board2[24][i] = 1;
         int temp = rd_block();
@@ -648,7 +651,7 @@ public:
             arr[1] = board[x][y+3];
         }
         else if (t == 5 || t == 9 || t == 17){
-            for (int i = x-3; i < x+1; i++){
+            for (int i = x-2; i < x+1; i++){
                 arr[k] = board[i][y+2];
                 k++;
             }
@@ -833,6 +836,9 @@ private:
     int score = 0;
     int score1 = 0;
     int score2 = 0;
+
+    //Đếm số lần win
+    int cnt_win[3] = {0};
 
     //Tọa độ các bảng và các khối
     SDL_Rect crd_board1;
@@ -1062,23 +1068,69 @@ public:
 
         for (int i = 0; i < 4; i++){//Tọa độ khối next của 3 nhóm block để căn giữa từng loại
             for (int j = 0; j < 4; j++){
-                crd_next_block[0][i][j] = {
+                crd_next_block[0][i][j] = { //Khối lệch về bên phải
                     displayMode.w*31/266+w_block*j,
                     displayMode.h*88/150+h_block*i,
                     w_block,
                     h_block
                 };
-                crd_next_block[1][i][j] = {
+                crd_next_block[1][i][j] = { //Khối I đứng
                     displayMode.w*38/266+w_block*j,
                     displayMode.h*92/150+h_block*i,
                     w_block,
                     h_block
                 };
-                crd_next_block[2][i][j] = {
+                crd_next_block[2][i][j] = { //Khối nằm giữa
                     displayMode.w*35/266+w_block*j,
                     displayMode.h*88/150+h_block*i,
                     w_block,
                     h_block                    
+                };
+            }
+        }
+
+        for (int i = 0; i < 4; i++){
+            for (int j = 0; j < 4; j++){
+                crd_next_block1[0][i][j] = {
+                    displayMode.w*97/266+w_block*j,
+                    displayMode.h*105/266+h_block*i,
+                    w_block,
+                    h_block
+                };
+                crd_next_block1[1][i][j] = {
+                    displayMode.w*104/266+w_block*j,
+                    displayMode.h*112/266+h_block*i,
+                    w_block,
+                    h_block
+                };
+                crd_next_block1[2][i][j] = {
+                    displayMode.w*100/266+w_block*j,
+                    displayMode.h*108/266+h_block*i,
+                    w_block,
+                    h_block
+                };
+            }
+        }
+
+        for (int i = 0; i < 4; i++){
+            for (int j = 0; j < 4; j++){
+                crd_next_block2[0][i][j] = {
+                    displayMode.w*136/266+w_block*j,
+                    displayMode.h*105/266+h_block*i,
+                    w_block,
+                    h_block
+                };
+                crd_next_block2[1][i][j] = {
+                    displayMode.w*143/266+w_block*j,
+                    displayMode.h*112/266+h_block*i,
+                    w_block,
+                    h_block
+                };
+                crd_next_block2[2][i][j] = {
+                    displayMode.w*139/266+w_block*j,
+                    displayMode.h*108/266+h_block*i,
+                    w_block,
+                    h_block
                 };
             }
         }
@@ -1186,7 +1238,7 @@ public:
     }
 
     //Tính tọa độ các chữ số
-    void cal_crd_num(SDL_Rect *crd_num, int n, string score,int t){
+    void cal_crd_num(SDL_Rect *crd_num, int n, string score, int x, int y, int w){
         int range_x = 0;
         for (int i = 0; i < n; i++){
             if (score[i] == '1'){
@@ -1197,23 +1249,12 @@ public:
             }
             range_x += (i < n-1? 1 : 0);
         }
-        int x,y,w;
-        if (t == 1){
-            x = 195;
-            y = 37;
-            w = 51;
-        }
-        else if (t == 2){
-            x = 86;
-            y = 71;
-            w = 96;
-        }
         int st_crdx = x+(w-range_x)/2;
         int crdy = y;
         for (int i = 0; i < n; i++){
             string str(1, score[i]);
             crd_num[i] = {
-                displayMode.h*st_crdx/150,
+                displayMode.w*st_crdx/266,
                 displayMode.h*crdy/150,
                 w_number[stoi(str)],
                 h_number[stoi(str)]
@@ -1223,11 +1264,11 @@ public:
     }
 
     //Viết điểm
-    void write_score(int score, int t){
+    void write_score(int score, int x, int y, int w){
         string sscore = to_string(score);
         int n = sscore.size();
         SDL_Rect crd_number[n];
-        cal_crd_num(crd_number,n,sscore,t);
+        cal_crd_num(crd_number,n,sscore,x,y,w);
         for (int i = 0; i < n; i++){
             string str(1, sscore[i]);
             SDL_RenderCopy(renderer,number[stoi(str)],nullptr,&crd_number[i]);
@@ -1433,11 +1474,11 @@ public:
                 SDL_RenderCopy(renderer,end1,nullptr,&crd_end1);
                 SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again[0]);
                 SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[0]);
-                write_score(score,2);
-                write_score(0,1);
+                write_score(score,86,71,96);
+                write_score(0,195,37,51);
             }
             else{
-                write_score(score,1);
+                write_score(score,195,37,51);
             }
             if (isPressed["pause"]){
                 SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
@@ -1489,13 +1530,13 @@ public:
                 //Kiểm tra phím thả
                 else if (event.type == SDL_KEYUP){
                     if (event.key.keysym.scancode == keyList[0]){
-                        if (check_update.move_l(two.X1,two.Y1,two.index_type1,two.board1) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                        if (!loss1 && check_update.move_l(two.X1,two.Y1,two.index_type1,two.board1) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
                             update.move_l(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
                         }
                         key_hold.erase(event.key.keysym.scancode);
                     }
                     else if (event.key.keysym.scancode == keyList[2]){
-                        if (check_update.move_r(two.X1,two.Y1,two.index_type1,two.board1) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                        if (!loss1 && check_update.move_r(two.X1,two.Y1,two.index_type1,two.board1) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
                             update.move_r(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
                         }
                         key_hold.erase(event.key.keysym.scancode);
@@ -1504,13 +1545,13 @@ public:
                         key_hold.erase(event.key.keysym.scancode);
                     }
                     if (event.key.keysym.scancode == keyList[3]){
-                        if (check_update.move_l(two.X2,two.Y2,two.index_type2,two.board2) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                        if (!loss2 && check_update.move_l(two.X2,two.Y2,two.index_type2,two.board2) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
                             update.move_l(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
                         }
                         key_hold.erase(event.key.keysym.scancode);
                     }
                     else if (event.key.keysym.scancode == keyList[5]){
-                        if (check_update.move_r(two.X2,two.Y2,two.index_type2,two.board2) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
+                        if (!loss2 && check_update.move_r(two.X2,two.Y2,two.index_type2,two.board2) && SDL_GetTicks()-key_hold[event.key.keysym.scancode] < hold_time){
                             update.move_r(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
                         }
                         key_hold.erase(event.key.keysym.scancode);
@@ -1647,6 +1688,8 @@ public:
                 }
                 if (loss1 && loss2){
                     loss = true;
+                    if (score1 > score2) cnt_win[1]++;
+                    else if (score2 > score1) cnt_win[2]++;
                 }
             }
 
@@ -1662,6 +1705,7 @@ public:
                 isPressed["exit"] = false;
                 isPressed["pause"] = false;
                 loss = loss1 = loss2 = false;
+                cnt_win[1] = cnt_win[2] = 0;
             }
             if (isPressed["continue"]){
                 isPressed["pause"] = false;
@@ -1681,21 +1725,25 @@ public:
             SDL_RenderCopy(renderer,next2,nullptr,&crd_next2);
             SDL_RenderCopy(renderer,scoreboard2,nullptr,&crd_scoreboard2);
             SDL_RenderCopy(renderer,win2,nullptr,&crd_win2);
-            /*
-            draw_next_block(data,two.list_index.front(),two.list_color.front(),crd_next_block);
 
-            SDL_RenderCopy(renderer,scoreboard1,nullptr,&crd_scoreboard1);
-            */
+            draw_next_block(data,two.list_index1.front(),two.list_color1.front(),crd_next_block1);
+            draw_next_block(data,two.list_index2.front(),two.list_color2.front(),crd_next_block2);
+
+            write_score(score1,99,37,35);
+            write_score(score2,134,37,34);
+            write_score(cnt_win[1],102,116,31);
+            write_score(cnt_win[2],133,116,30);
+
             SDL_RenderCopy(renderer,pause[clicking["pause"]],nullptr,&crd_pause);
             if (loss){
                 SDL_RenderCopy(renderer,end2,nullptr,&crd_end2);
                 SDL_RenderCopy(renderer,try_again[clicking["try_again"]],nullptr,&crd_try_again[1]);
                 SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[2]);
+                write_score(score1,87,44,58);
+                write_score(score2,146,44,58);
+                write_score(cnt_win[1],87,64,58);
+                write_score(cnt_win[2],146,64,58);
             }
-            /*
-            else{
-                write_score(score,1);
-            */
             if (isPressed["pause"]){
                 SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
                 SDL_RenderCopy(renderer,cntinue[clicking["continue"]],nullptr,&crd_cntinue);
