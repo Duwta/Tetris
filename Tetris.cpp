@@ -1140,7 +1140,7 @@ public:
         get_crd(crd_scoreboard2,w_scoreboard2,h_scoreboard2,98,22);
 
         //Tọa độ bảng win
-        get_crd(crd_win2,w_win2,h_win2,101,102);
+        get_crd(crd_win2,w_win2,h_win2,102,102);
 
         //tọa độ bảng end
         get_crd_setting(crd_end1,w_end1,h_end1);
@@ -1731,8 +1731,8 @@ public:
 
             write_score(score1,99,37,35);
             write_score(score2,134,37,34);
-            write_score(cnt_win[1],102,116,31);
-            write_score(cnt_win[2],133,116,30);
+            write_score(cnt_win[1],103,116,31);
+            write_score(cnt_win[2],134,116,30);
 
             SDL_RenderCopy(renderer,pause[clicking["pause"]],nullptr,&crd_pause);
             if (loss){
