@@ -802,12 +802,20 @@ private:
     SDL_Texture* end2;
     //Bảng menu
     SDL_Texture* menu;
+    SDL_Texture* selectMode;
+
+    //Tên game
+    SDL_Texture* name;
 
     //Các nút
     SDL_Texture* pause[2];
     SDL_Texture* try_again[2];
     SDL_Texture* exit[2];
     SDL_Texture* cntinue[2];
+    SDL_Texture* play[2];
+    SDL_Texture* settings[2];
+    SDL_Texture* onePlayer[2];
+    SDL_Texture* twoPlayers[2];
 
     //Kích thước
     int w_board, h_board;
@@ -826,11 +834,18 @@ private:
     int w_end2, h_end2;
 
     int w_menu, h_menu;
+    int w_selectMode, h_selectMode;
+
+    int w_name, h_name;
 
     int w_pause, h_pause;
     int w_try_again, h_try_again;
     int w_exit, h_exit;
     int w_cntinue, h_cntinue;
+    int w_play, h_play;
+    int w_settings, h_settings;
+    int w_onePlayer, h_onePlayer;
+    int w_twoPlayers, h_twoPlayers;
 
     //Điểm của player
     int score = 0;
@@ -840,7 +855,7 @@ private:
     //Đếm số lần win
     int cnt_win[3] = {0};
 
-    //Tọa độ các bảng và các khối
+    //Tọa độ 
     SDL_Rect crd_board1;
     SDL_Rect crd_board2;
     SDL_Rect crd_board3;
@@ -855,23 +870,27 @@ private:
     SDL_Rect crd_scoreboard2;
 
     SDL_Rect crd_win2;
-    //Tọa độ khối next
+
     SDL_Rect crd_next_block[3][4][4];
     SDL_Rect crd_next_block1[3][4][4];
     SDL_Rect crd_next_block2[3][4][4];
 
-    //Tọa độ bảng end
     SDL_Rect crd_end1;
     SDL_Rect crd_end2;
 
-    //Tọa độ menu
     SDL_Rect crd_menu;
+    SDL_Rect crd_selectMode;
 
-    //Tọa độ nút
+    SDL_Rect crd_name;
+
     SDL_Rect crd_pause;
     SDL_Rect crd_try_again[2];
-    SDL_Rect crd_exit[3];
+    SDL_Rect crd_exit[4];
     SDL_Rect crd_cntinue;
+    SDL_Rect crd_play;
+    SDL_Rect crd_settings;
+    SDL_Rect crd_onePlayer;
+    SDL_Rect crd_twoPlayers;
 
     //Lưu thời gian nhấn key
     map<SDL_Scancode, Uint32> key_hold;
@@ -899,6 +918,9 @@ private:
     bool loss = false;
     bool loss1 = false;
     bool loss2 = false;
+
+    //bool thoát game
+    bool hard_exit = false;
 
     //chọn ảnh button khi click nút
     map<string, int> clicking;
@@ -976,11 +998,17 @@ public:
         end1 = loadTexture("graphic/gameplay1/your_score.png");
         end2 = loadTexture("graphic/gameplay2/player's_scores.png");
         menu = loadTexture("graphic/menu/settings_window.png");
+        selectMode = loadTexture("graphic/menu/select_mode.png");
+        name = loadTexture("graphic/menu/name.png");
 
         loadTextureButton(pause,"pause");
         loadTextureButton(try_again,"try_again");
         loadTextureButton(exit,"exit");
         loadTextureButton(cntinue,"continue");
+        loadTextureButton(play,"play");
+        loadTextureButton(settings,"settings");
+        loadTextureButton(onePlayer,"1_player");
+        loadTextureButton(twoPlayers,"2_players");
 
         //Kích thước bảng, khối
         cal_size(w_board,h_board,78,148);
@@ -1012,12 +1040,20 @@ public:
 
         //Kích thước menu
         cal_size(w_menu,h_menu,150,75);
+        cal_size(w_selectMode,h_selectMode,150,75);
+
+        //Kích thước tên
+        cal_size(w_name,h_name,158,28);
 
         //Kích thước các nút
         cal_size(w_pause,h_pause,12,11);
         cal_size(w_try_again,h_try_again,53,15);
         cal_size(w_exit,h_exit,31,15);
         cal_size(w_cntinue,h_cntinue,51,15);
+        cal_size(w_play,h_play,32,15);
+        cal_size(w_settings,h_settings,52,15);
+        cal_size(w_onePlayer,h_onePlayer,47,15);
+        cal_size(w_twoPlayers,h_twoPlayers,53,15);
 
         //Tọa độ, thuộc tính của bảng, khối
         crd_board1 = {
@@ -1148,6 +1184,10 @@ public:
 
         //Tọa độ menu
         get_crd_setting(crd_menu,w_menu,h_menu);
+        get_crd_setting(crd_selectMode,w_selectMode,h_selectMode);
+
+        //Tọa độ name
+        get_crd(crd_name,w_name,h_name,55,37);
 
         //Tọa độ các nút
         get_crd(crd_pause,w_pause,h_pause,1,1);
@@ -1156,7 +1196,12 @@ public:
         get_crd(crd_exit[0],w_exit,h_exit,145,80);
         get_crd(crd_exit[1],w_exit,h_exit,155,86);
         get_crd(crd_exit[2],w_exit,h_exit,155,94);
+        get_crd(crd_exit[3],w_exit,h_exit,118,80);
         get_crd(crd_cntinue,w_cntinue,h_cntinue,80,86);
+        get_crd(crd_play,w_play,h_play,118,68);
+        get_crd(crd_settings,w_settings,h_settings,108,84);
+        get_crd(crd_onePlayer,w_onePlayer,h_onePlayer,75,68);
+        get_crd(crd_twoPlayers,w_twoPlayers,h_twoPlayers,140,68);
     }
     //Tạo texture ảnh bất kì
     SDL_Texture* loadTexture(const string& path){
@@ -1320,6 +1365,7 @@ public:
                 // Kiểm tra sự kiện thoát
                 if (event.type == SDL_QUIT){
                     running = false;
+                    hard_exit = true;
                 }
                 // Kiểm tra phím nhấn
                 else if (event.type == SDL_KEYDOWN){
@@ -1437,23 +1483,6 @@ public:
                     fall_time = SDL_GetTicks();
                 }
             }
-            if (isPressed["try_again"]){
-                one.create();
-                score = 0;
-                level = 0;
-                isPressed["try_again"] = false;
-                loss = false;
-            }
-            if (isPressed["exit"]){
-                running = false;
-                isPressed["exit"] = false;
-                isPressed["pause"] = false;
-                loss = false;
-            }
-            if (isPressed["continue"]){
-                isPressed["pause"] = false;
-                isPressed["continue"] = false;
-            }
 
             //Xóa màn hình cũ
             SDL_RenderClear(renderer);
@@ -1489,6 +1518,24 @@ public:
             //Update màn hình mới
             SDL_RenderPresent(renderer);
 
+            if (isPressed["try_again"]){
+                one.create();
+                score = 0;
+                level = 0;
+                isPressed["try_again"] = false;
+                loss = false;
+            }
+            if (isPressed["exit"]){
+                running = false;
+                isPressed["exit"] = false;
+                isPressed["pause"] = false;
+                loss = false;
+            }
+            if (isPressed["continue"]){
+                isPressed["pause"] = false;
+                isPressed["continue"] = false;
+            }
+
             frameTime = SDL_GetTicks()-frameStart;
             if (frameTime < frameDelay){
                 SDL_Delay(frameDelay-frameTime);
@@ -1510,6 +1557,7 @@ public:
                 // Kiểm tra sự kiện thoát
                 if (event.type == SDL_QUIT){
                     running = false;
+                    hard_exit = true;
                 }
                 // Kiểm tra phím nhấn
                 else if (event.type == SDL_KEYDOWN){
@@ -1693,25 +1741,6 @@ public:
                 }
             }
 
-            if (isPressed["try_again"]){
-                two.create();
-                score1 = score2 = 0;
-                level1 = level2 = 0;
-                isPressed["try_again"] = false;
-                loss = loss1 = loss2 = false;
-            }
-            if (isPressed["exit"]){
-                running = false;
-                isPressed["exit"] = false;
-                isPressed["pause"] = false;
-                loss = loss1 = loss2 = false;
-                cnt_win[1] = cnt_win[2] = 0;
-            }
-            if (isPressed["continue"]){
-                isPressed["pause"] = false;
-                isPressed["continue"] = false;
-            }
-
             //Xóa màn hình cũ
             SDL_RenderClear(renderer);
 
@@ -1752,12 +1781,146 @@ public:
             //Update màn hình mới
             SDL_RenderPresent(renderer);
 
+            if (isPressed["try_again"]){
+                two.create();
+                score1 = score2 = 0;
+                level1 = level2 = 0;
+                isPressed["try_again"] = false;
+                loss = loss1 = loss2 = false;
+            }
+            if (isPressed["exit"]){
+                running = false;
+                isPressed["exit"] = false;
+                isPressed["pause"] = false;
+                loss = loss1 = loss2 = false;
+                cnt_win[1] = cnt_win[2] = 0;
+            }
+            if (isPressed["continue"]){
+                isPressed["pause"] = false;
+                isPressed["continue"] = false;
+            }
+
             frameTime = SDL_GetTicks()-frameStart;
             if (frameTime < frameDelay){
                 SDL_Delay(frameDelay-frameTime);
             }
         }
     }
+    //Màn hình chính
+    int home(){
+        bool running = true;
+        while (running){
+            SDL_Event event;
+            while (SDL_PollEvent(&event)){
+                if (event.type == SDL_QUIT){
+                    running = false;
+                    hard_exit = true;
+                    return 3;
+                }
+                else if (event.type == SDL_MOUSEBUTTONDOWN){
+                    if (!isPressed["settings"] && !isPressed["play"] && contains(event.button.x,event.button.y,crd_play)){
+                        clicking["play"] = 1;
+                    }
+                    else if (!isPressed["play"] && !isPressed["settings"] && contains(event.button.x,event.button.y,crd_settings)){
+                        clicking["settings"] = 1;
+                    }
+                    else if (!contains(event.button.x,event.button.y,crd_menu)){
+                        isPressed["play"] = false;
+                        isPressed["settings"] = false;
+                    }
+                    else if (isPressed["play"]){
+                        if (contains(event.button.x,event.button.y,crd_onePlayer)){
+                            clicking["onePlayer"] = 1;
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_twoPlayers)){
+                            clicking["twoPlayers"] = 1;
+                        }
+                    }
+                    else if (isPressed["settings"]){
+                        if (contains(event.button.x,event.button.y,crd_exit[3])){
+                            clicking["exit"] = 1;
+                        }
+                    }
+                }
+                else if (event.type == SDL_MOUSEBUTTONUP){
+                    if (clicking["play"] == 1){
+                        clicking["play"] = 0;
+                        isPressed["play"] = true;
+                    }
+                    if (clicking["settings"] == 1){
+                        clicking["settings"] = 0;
+                        isPressed["settings"] = true;
+                    }
+                    if (clicking["onePlayer"] == 1){
+                        clicking["onePlayer"] = 0;
+                        isPressed["onePlayer"] = true;
+                    }
+                    if (clicking["twoPlayers"] == 1){
+                        clicking["twoPlayers"] = 0;
+                        isPressed["twoPlayers"] = true;
+                    }
+                    if (clicking["exit"] == 1){
+                        clicking["exit"] = 0;
+                        isPressed["exit"] = true;
+                    }
+                }
+            }
+
+            //Xóa màn hình cũ
+            SDL_RenderClear(renderer);
+
+            //Vẽ màn hình mới
+            SDL_RenderCopy(renderer,backgroundTexture,nullptr,nullptr);
+            SDL_RenderCopy(renderer,name,nullptr,&crd_name);
+
+            SDL_RenderCopy(renderer,play[clicking["play"]],nullptr,&crd_play);
+            SDL_RenderCopy(renderer,settings[clicking["settings"]],nullptr,&crd_settings);
+
+            if (isPressed["play"]){
+                SDL_RenderCopy(renderer,selectMode,nullptr,&crd_selectMode);
+                SDL_RenderCopy(renderer,onePlayer[clicking["onePlayer"]],nullptr,&crd_onePlayer);
+                SDL_RenderCopy(renderer,twoPlayers[clicking["twoPlayers"]],nullptr,&crd_twoPlayers);
+            }
+
+            if (isPressed["settings"]){
+                SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
+                SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[3]);
+            }
+
+            //Update màn hình mới
+            SDL_RenderPresent(renderer);
+
+            if (isPressed["exit"]){
+                running = false;
+                isPressed["exit"] = false;
+                isPressed["settings"] = false;
+                return 3;
+            }
+            if (isPressed["onePlayer"]){
+                running = false;
+                isPressed["onePlayer"] = false;
+                isPressed["play"] = false;
+                return 1;
+            }
+            if (isPressed["twoPlayers"]){
+                running = false;
+                isPressed["twoPlayers"] = false;
+                isPressed["play"] = false;
+                return 2;
+            }
+
+            frameTime = SDL_GetTicks()-frameStart;
+            if (frameTime < frameDelay){
+                SDL_Delay(frameDelay-frameTime);
+            }
+        }
+    }
+
+    //Kiểm tra thoát hẳn
+    bool get_exit(){
+        return hard_exit;
+    }
+
     //Thoát SDL
     ~Interaction(){
         //Xóa các các ảnh
@@ -1776,6 +1939,8 @@ public:
         SDL_DestroyTexture(end1);
         SDL_DestroyTexture(end2);
         SDL_DestroyTexture(menu);
+        SDL_DestroyTexture(selectMode);
+        SDL_DestroyTexture(name);
         SDL_DestroyTexture(pause[0]);
         SDL_DestroyTexture(pause[1]);
         SDL_DestroyTexture(try_again[0]);
@@ -1784,6 +1949,14 @@ public:
         SDL_DestroyTexture(exit[1]);
         SDL_DestroyTexture(cntinue[0]);
         SDL_DestroyTexture(cntinue[1]);
+        SDL_DestroyTexture(play[0]);
+        SDL_DestroyTexture(play[1]);
+        SDL_DestroyTexture(settings[0]);
+        SDL_DestroyTexture(settings[1]);
+        SDL_DestroyTexture(onePlayer[0]);
+        SDL_DestroyTexture(onePlayer[1]);
+        SDL_DestroyTexture(twoPlayers[0]);
+        SDL_DestroyTexture(twoPlayers[1]);
 
         //Xóa cửa sổ màn hình
         SDL_DestroyRenderer(renderer);
@@ -1801,7 +1974,19 @@ int main(int argc, char* argv[]){
     Update update;
     Check_update check_update;
 
-    //interaction.mode_one_player(data,one,update,check_update);
-    interaction.mode_two_players(data,two,update,check_update);
+    bool running = true;
+    while (running){
+        int mode = interaction.home();
+        if (mode == 1){
+            interaction.mode_one_player(data,one,update,check_update);
+        }
+        else if (mode == 2){
+            interaction.mode_two_players(data,two,update,check_update);
+        }
+        if (interaction.get_exit() || mode == 3){
+            running = false;
+        }
+    }
+
     return 0;
 }
