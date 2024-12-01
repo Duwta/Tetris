@@ -783,6 +783,8 @@ private:
     SDL_Renderer* renderer;
     SDL_Texture* backgroundTexture;
     SDL_DisplayMode displayMode;
+    SDL_Texture* open_left;
+    SDL_Texture* open_right;
 
     //Bảng và khối
     SDL_Texture* board;
@@ -818,6 +820,9 @@ private:
     SDL_Texture* twoPlayers[2];
 
     //Kích thước
+    int w_open_left, h_open_left;
+    int w_open_right, h_open_right;
+
     int w_board, h_board;
     int w_block, h_block;
 
@@ -855,7 +860,10 @@ private:
     //Đếm số lần win
     int cnt_win[3] = {0};
 
-    //Tọa độ 
+    //Tọa độ
+    SDL_Rect crd_open_left;
+    SDL_Rect crd_open_right;
+
     SDL_Rect crd_board1;
     SDL_Rect crd_board2;
     SDL_Rect crd_board3;
@@ -901,6 +909,7 @@ private:
     int level = 0;
     int level1 = 0;
     int level2 = 0;
+    Uint32 v = 15;
 
     //Lấy dữ liệu key đang nhấn trên bàn phím
     const Uint8* keyState = SDL_GetKeyboardState(NULL);
@@ -980,6 +989,8 @@ public:
         }
 
         //Lấy ảnh tử folder
+        open_left = loadTexture("graphic/background/open_left.png");
+        open_right = loadTexture("graphic/background/open_right.png");
         board = loadTexture("graphic/gameplay/board.png");
         block[0] = nullptr;
         block[1] = loadTexture("graphic/gameplay/red.png");
@@ -1010,6 +1021,8 @@ public:
         loadTextureButton(onePlayer,"1_player");
         loadTextureButton(twoPlayers,"2_players");
 
+        cal_size(w_open_left,h_open_left,94,150);
+        cal_size(w_open_right,h_open_right,94,150);
         //Kích thước bảng, khối
         cal_size(w_board,h_board,78,148);
         cal_size(w_block,h_block,7,7);
@@ -1043,7 +1056,7 @@ public:
         cal_size(w_selectMode,h_selectMode,150,75);
 
         //Kích thước tên
-        cal_size(w_name,h_name,158,28);
+        cal_size(w_name,h_name,79,14);
 
         //Kích thước các nút
         cal_size(w_pause,h_pause,12,11);
@@ -1171,6 +1184,10 @@ public:
             }
         }
 
+        //Tọa độ open
+        get_crd(crd_open_left,w_open_left,h_open_right,-92,0);
+        get_crd(crd_open_right,w_open_right,h_open_right,266,0);
+
         //Tọa độ bảng scoreboard
         get_crd(crd_scoreboard1,w_scoreboard1,h_scoreboard1,195,22);
         get_crd(crd_scoreboard2,w_scoreboard2,h_scoreboard2,98,22);
@@ -1187,7 +1204,7 @@ public:
         get_crd_setting(crd_selectMode,w_selectMode,h_selectMode);
 
         //Tọa độ name
-        get_crd(crd_name,w_name,h_name,55,37);
+        get_crd(crd_name,w_name,h_name,94,37);
 
         //Tọa độ các nút
         get_crd(crd_pause,w_pause,h_pause,1,1);
@@ -1198,8 +1215,8 @@ public:
         get_crd(crd_exit[2],w_exit,h_exit,155,94);
         get_crd(crd_exit[3],w_exit,h_exit,118,80);
         get_crd(crd_cntinue,w_cntinue,h_cntinue,80,86);
-        get_crd(crd_play,w_play,h_play,118,68);
-        get_crd(crd_settings,w_settings,h_settings,108,84);
+        get_crd(crd_play,w_play,h_play,118,70);
+        get_crd(crd_settings,w_settings,h_settings,108,86);
         get_crd(crd_onePlayer,w_onePlayer,h_onePlayer,75,68);
         get_crd(crd_twoPlayers,w_twoPlayers,h_twoPlayers,140,68);
     }
@@ -1353,6 +1370,33 @@ public:
 
     //Mode 1 player
     void mode_one_player(Data data, One one, Update update, Check_update check_update){
+        Uint32 start = SDL_GetTicks();
+        int step = 2;
+        int x1 = 0, x2 = 174;
+        while (x1-step > -92){
+            frameStart = SDL_GetTicks();
+            if (SDL_GetTicks()-start > v){
+                get_crd(crd_open_left,w_open_left,h_open_left,x1-step,0);
+                get_crd(crd_open_right,w_open_right,h_open_right,x2+step,0);
+                step += 2;
+                start = SDL_GetTicks();
+            }
+            //Xóa màn hình cũ
+            SDL_RenderClear(renderer);
+
+            //Vẽ màn hình mới
+            SDL_RenderCopy(renderer,backgroundTexture,nullptr,nullptr);
+            SDL_RenderCopy(renderer,open_left,nullptr,&crd_open_left);
+            SDL_RenderCopy(renderer,open_right,nullptr,&crd_open_right);
+
+            //Update màn hình mới
+            SDL_RenderPresent(renderer);
+
+            frameTime = SDL_GetTicks()-frameStart;
+            if (frameTime < frameDelay){
+                SDL_Delay(frameDelay-frameTime);
+            }
+        }
         //Khởi tạo game
         one.create();
         Uint32 fall_time = SDL_GetTicks();
@@ -1544,6 +1588,34 @@ public:
     }
 
     void mode_two_players(Data data, Two two, Update update, Check_update check_update){
+        Uint32 start = SDL_GetTicks();
+        int step = 2;
+        int x1 = 0, x2 = 174;
+        while (x1-step > -92){
+            frameStart = SDL_GetTicks();
+            if (SDL_GetTicks()-start > v){
+                get_crd(crd_open_left,w_open_left,h_open_left,x1-step,0);
+                get_crd(crd_open_right,w_open_right,h_open_right,x2+step,0);
+                step += 2;
+                start = SDL_GetTicks();
+            }
+            //Xóa màn hình cũ
+            SDL_RenderClear(renderer);
+
+            //Vẽ màn hình mới
+            SDL_RenderCopy(renderer,backgroundTexture,nullptr,nullptr);
+            SDL_RenderCopy(renderer,open_left,nullptr,&crd_open_left);
+            SDL_RenderCopy(renderer,open_right,nullptr,&crd_open_right);
+
+            //Update màn hình mới
+            SDL_RenderPresent(renderer);
+
+            frameTime = SDL_GetTicks()-frameStart;
+            if (frameTime < frameDelay){
+                SDL_Delay(frameDelay-frameTime);
+            }
+        }
+
         //Khởi tạo game
         two.create();
         Uint32 fall_time1 = SDL_GetTicks();
@@ -1808,6 +1880,29 @@ public:
     }
     //Màn hình chính
     int home(){
+        Uint32 start = SDL_GetTicks();
+        int step = 2;
+        int x1 = -92, x2 = 267;
+        while (x1+step < 0){
+            if (SDL_GetTicks()-start > v){
+                get_crd(crd_open_left,w_open_left,h_open_left,x1+step,0);
+                get_crd(crd_open_right,w_open_right,h_open_right,x2-step,0);
+                step += 2;
+                start = SDL_GetTicks();
+            }
+            //Xóa màn hình cũ
+            SDL_RenderClear(renderer);
+
+            //Vẽ màn hình mới
+            SDL_RenderCopy(renderer,backgroundTexture,nullptr,nullptr);
+            SDL_RenderCopy(renderer,name,nullptr,&crd_name);
+            SDL_RenderCopy(renderer,open_left,nullptr,&crd_open_left);
+            SDL_RenderCopy(renderer,open_right,nullptr,&crd_open_right);
+
+            //Update màn hình mới
+            SDL_RenderPresent(renderer);
+        }
+
         bool running = true;
         while (running){
             SDL_Event event;
@@ -1872,6 +1967,8 @@ public:
             //Vẽ màn hình mới
             SDL_RenderCopy(renderer,backgroundTexture,nullptr,nullptr);
             SDL_RenderCopy(renderer,name,nullptr,&crd_name);
+            SDL_RenderCopy(renderer,open_left,nullptr,&crd_open_left);
+            SDL_RenderCopy(renderer,open_right,nullptr,&crd_open_right);
 
             SDL_RenderCopy(renderer,play[clicking["play"]],nullptr,&crd_play);
             SDL_RenderCopy(renderer,settings[clicking["settings"]],nullptr,&crd_settings);
@@ -1924,6 +2021,8 @@ public:
     //Thoát SDL
     ~Interaction(){
         //Xóa các các ảnh
+        SDL_DestroyTexture(open_left);
+        SDL_DestroyTexture(open_right);
         for (int i = 0; i < 6; i++){
             SDL_DestroyTexture(block[i]);
         }
@@ -1987,6 +2086,5 @@ int main(int argc, char* argv[]){
             running = false;
         }
     }
-
     return 0;
 }
