@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
 #include <iostream>
 #include <random>
 #include <algorithm>
@@ -819,6 +820,14 @@ private:
     SDL_Texture* onePlayer[2];
     SDL_Texture* twoPlayers[2];
 
+    //Sound effects & background music
+    Mix_Music* backgroundMusic;
+    Mix_Music* openMode;
+    Mix_Chunk* clickButtons;
+    Mix_Chunk* getPoint;
+    Mix_Chunk* falling;
+    Mix_Chunk* moving;
+
     //Kích thước
     int w_open_left, h_open_left;
     int w_open_right, h_open_right;
@@ -931,6 +940,9 @@ private:
     //bool thoát game
     bool hard_exit = false;
 
+    //Âm lượng
+    int musicVolume, sfxVolume;
+
     //chọn ảnh button khi click nút
     map<string, int> clicking;
     //kiểm tra button vừa được click
@@ -946,11 +958,22 @@ public:
     Interaction(){
         //Tạo màn hình
         if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-            cerr << "Could not initialize SDL: " << SDL_GetError() << endl;
+            cout << "Could not initialize SDL: " << SDL_GetError() << endl;
         }
 
         if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
-            cerr << "Could not initialize SDL_image: " << IMG_GetError() << endl;
+            cout << "Could not initialize SDL_image: " << IMG_GetError() << endl;
+            SDL_Quit();
+        }
+
+        if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+            cout << "Could not initialize SDL: " << SDL_GetError() << endl;
+            SDL_Quit();
+        }
+
+        // 2. Khởi tạo SDL_mixer
+        if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+            cout << "Could not initialize SDL_mixer: " << Mix_GetError() << endl;
             SDL_Quit();
         }
 
@@ -960,14 +983,14 @@ public:
                                     0, 0, 
                                     SDL_WINDOW_FULLSCREEN_DESKTOP);
         if (!window) {
-            cerr << "Could not create window: " << SDL_GetError() << endl;
+            cout << "Could not create window: " << SDL_GetError() << endl;
             IMG_Quit();
             SDL_Quit();
         }
 
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         if (!renderer) {
-            cerr << "Could not create renderer: " << SDL_GetError() << endl;
+            cout << "Could not create renderer: " << SDL_GetError() << endl;
             SDL_DestroyWindow(window);
             IMG_Quit();
             SDL_Quit();
@@ -975,7 +998,7 @@ public:
         //Khởi tạo background
         backgroundTexture = IMG_LoadTexture(renderer, "graphic/background/background.png");
         if (!backgroundTexture) {
-            cerr << "Could not load background image: " << IMG_GetError() << endl;
+            cout << "Could not load background image: " << IMG_GetError() << endl;
             SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
             IMG_Quit();
@@ -984,7 +1007,7 @@ public:
 
         // Lấy chế độ hiển thị hiện tại
         if (SDL_GetCurrentDisplayMode(0, &displayMode) != 0) {
-            std::cout << "Could not get current display mode! SDL_Error: " << SDL_GetError() << std::endl;
+            cout << "Could not get current display mode! SDL_Error: " << SDL_GetError() << endl;
             SDL_Quit();
         }
 
@@ -1020,6 +1043,14 @@ public:
         loadTextureButton(settings,"settings");
         loadTextureButton(onePlayer,"1_player");
         loadTextureButton(twoPlayers,"2_players");
+
+        //Lấy âm thanh từ folder
+        backgroundMusic = loadMix_Music("sound/background_music.mp3");
+        clickButtons = loadMix_Chunk("sound/click_buttons.mp3");
+        getPoint = loadMix_Chunk("sound/get_point.mp3");
+        openMode = loadMix_Music("sound/open_mode.mp3");
+        falling = loadMix_Chunk("sound/falling.mp3");
+        moving = loadMix_Chunk("sound/moving.mp3");
 
         cal_size(w_open_left,h_open_left,94,150);
         cal_size(w_open_right,h_open_right,94,150);
@@ -1224,7 +1255,7 @@ public:
     SDL_Texture* loadTexture(const string& path){
         SDL_Surface* loadedSurface = IMG_Load(path.c_str());
         if (loadedSurface == nullptr) {
-            std::cout << "Unable to load image " << path << "! SDL_image Error: " << IMG_GetError() << std::endl;
+            cout << "Unable to load image " << path << "! SDL_image Error: " << IMG_GetError() << endl;
             return nullptr;
         }
 
@@ -1232,7 +1263,7 @@ public:
         SDL_FreeSurface(loadedSurface);
 
         if (texture == nullptr) {
-            std::cout << "Unable to create texture from " << path << "! SDL Error: " << SDL_GetError() << std::endl;
+            cout << "Unable to create texture from " << path << "! SDL Error: " << SDL_GetError() << endl;
         }
 
         return texture;
@@ -1241,6 +1272,30 @@ public:
     void loadTextureButton(SDL_Texture* button[2], string name){
         button[0] = loadTexture("graphic/menu/"+name+".png");
         button[1] = loadTexture("graphic/menu/"+name+"_hold.png");
+    }
+    //Mở file nhạc
+    Mix_Music* loadMix_Music(const string &path){
+        Mix_Music* music = Mix_LoadMUS(path.c_str());
+        if (!music) {
+            cout << "Unable to load file music MP3 " << path << "! SDL_mixer Error: " << Mix_GetError() << endl;
+            return nullptr;
+        }
+        return music;
+    }
+    //Chơi nhạc
+    void playMusic(Mix_Music* music, int loop){
+        if (Mix_PlayMusic(music,loop) == -1){
+            cout << "Could not play music: " << Mix_GetError() << endl;
+            Mix_FreeMusic(music);
+        }
+    }
+    //Mở file âm thanh
+    Mix_Chunk* loadMix_Chunk(const string &path){
+        Mix_Chunk* effect = Mix_LoadWAV(path.c_str());
+        if (!effect) {
+            cout << "Error loading sound effect: " << Mix_GetError() << endl;
+        }
+        return effect;
     }
     //Vẽ các khối ra màn hình
     void draw_block(int board_color[25][12], SDL_Rect crd_block[25][12]){
@@ -1370,6 +1425,7 @@ public:
 
     //Mode 1 player
     void mode_one_player(Data data, One one, Update update, Check_update check_update){
+        playMusic(openMode,0);
         Uint32 start = SDL_GetTicks();
         int step = 2;
         int x1 = 0, x2 = 174;
@@ -1415,10 +1471,12 @@ public:
                 else if (event.type == SDL_KEYDOWN){
                     if (find(begin(keyList),end(keyList),event.key.keysym.scancode) != end(keyList)){
                         key_hold[event.key.keysym.scancode] = SDL_GetTicks();
+                        Mix_PlayChannel(-1,moving,0);
                     }
                     else if (event.key.keysym.scancode == SDL_SCANCODE_W || event.key.keysym.scancode == SDL_SCANCODE_UP){
                         if (check_update.turn(one.X,one.Y,one.index_type,one.board)){
                             update.turn(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                            Mix_PlayChannel(-1,moving,0);
                         }
                     }
                 }
@@ -1444,20 +1502,25 @@ public:
                     if (loss){
                         if (contains(event.button.x,event.button.y,crd_try_again[0])){
                             clicking["try_again"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                         else if (contains(event.button.x,event.button.y,crd_exit[0])){
                             clicking["exit"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                     }
                     else if (!isPressed["pause"] && contains(event.button.x,event.button.y,crd_pause)){
                         clicking["pause"] = 1;
+                        Mix_PlayChannel(-1,clickButtons,0);
                     }
                     else if (isPressed["pause"]){
                         if (contains(event.button.x,event.button.y,crd_exit[1])){
                             clicking["exit"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                         else if (contains(event.button.x,event.button.y,crd_cntinue)){
                             clicking["continue"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                     }
                 }
@@ -1486,6 +1549,7 @@ public:
                     SDL_Scancode key = (keyState[keyList[0]]? keyList[0] : keyList[3]);
                     if (SDL_GetTicks()-key_hold[key] >= hold_time){
                         update.move_l(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                        Mix_PlayChannel(-1,moving,0);
                         key_hold[key] = SDL_GetTicks();
                     }
                 }
@@ -1493,6 +1557,7 @@ public:
                     SDL_Scancode key = (keyState[keyList[2]]? keyList[2] : keyList[5]);
                     if (SDL_GetTicks()-key_hold[key] >= hold_time){
                         update.move_r(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                        Mix_PlayChannel(-1,moving,0);
                         key_hold[key] = SDL_GetTicks();
                     }
                 }
@@ -1501,6 +1566,7 @@ public:
                     SDL_Scancode key = (keyState[keyList[1]]? keyList[1] : keyList[4]);
                     if (SDL_GetTicks()-key_hold[key] >= fall_levels[6]){
                         update.fall(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color);
+                        Mix_PlayChannel(-1,moving,0);
                         key_hold[key] = SDL_GetTicks();
                     }
                 }
@@ -1512,6 +1578,7 @@ public:
                         }
                     }
                     else{
+                        Mix_PlayChannel(-1,falling,0);
                         if (data.loss(one.board)){
                             loss = true;
                         }
@@ -1519,6 +1586,7 @@ public:
                             one.reset();
                             if (data.check(one.board,one.row_full)){
                                 int cnt_row = data.delete_row(one.X,one.Y,one.index_type,one.color_type,one.board,one.board_color,one.row_full);
+                                Mix_PlayChannel(-1,getPoint,0);
                                 score += scoring(cnt_row);
                                 level = cal_level(score);
                             }
@@ -1588,6 +1656,7 @@ public:
     }
 
     void mode_two_players(Data data, Two two, Update update, Check_update check_update){
+        playMusic(openMode,0);
         Uint32 start = SDL_GetTicks();
         int step = 2;
         int x1 = 0, x2 = 174;
@@ -1635,15 +1704,18 @@ public:
                 else if (event.type == SDL_KEYDOWN){
                     if (find(begin(keyList),end(keyList),event.key.keysym.scancode) != end(keyList)){
                         key_hold[event.key.keysym.scancode] = SDL_GetTicks();
+                        Mix_PlayChannel(-1,moving,0);
                     }
                     if (event.key.keysym.scancode == SDL_SCANCODE_W){
                         if (check_update.turn(two.X1,two.Y1,two.index_type1,two.board1)){
                             update.turn(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            Mix_PlayChannel(-1,moving,0);
                         }
                     }
                     if (event.key.keysym.scancode == SDL_SCANCODE_UP){
                         if (check_update.turn(two.X2,two.Y2,two.index_type2,two.board2)){
                             update.turn(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            Mix_PlayChannel(-1,moving,0);
                         }
                     }
                 }
@@ -1684,20 +1756,25 @@ public:
                     if (loss){
                         if (contains(event.button.x,event.button.y,crd_try_again[1])){
                             clicking["try_again"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                         else if (contains(event.button.x,event.button.y,crd_exit[2])){
                             clicking["exit"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                     }
                     else if (!isPressed["pause"] && contains(event.button.x,event.button.y,crd_pause)){
                         clicking["pause"] = 1;
+                        Mix_PlayChannel(-1,clickButtons,0);
                     }
                     else if (isPressed["pause"]){
                         if (contains(event.button.x,event.button.y,crd_exit[1])){
                             clicking["exit"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                         else if (contains(event.button.x,event.button.y,crd_cntinue)){
                             clicking["continue"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                     }
                 }
@@ -1726,18 +1803,21 @@ public:
                     if ((keyState[keyList[0]]) && check_update.move_l(two.X1,two.Y1,two.index_type1,two.board1)){
                         if (SDL_GetTicks()-key_hold[keyList[0]] >= hold_time){
                             update.move_l(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            Mix_PlayChannel(-1,moving,0);
                             key_hold[keyList[0]] = SDL_GetTicks();
                         }
                     }
                     if ((keyState[keyList[2]]) && check_update.move_r(two.X1,two.Y1,two.index_type1,two.board1)){
                         if (SDL_GetTicks()-key_hold[keyList[2]] >= hold_time){
                             update.move_r(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            Mix_PlayChannel(-1,moving,0);
                             key_hold[keyList[2]] = SDL_GetTicks();
                         }
                     }
                     if ((keyState[keyList[1]]) && check_update.fall(two.X1,two.Y1,two.index_type1,two.board1)){
                         if (SDL_GetTicks()-key_hold[keyList[1]] >= fall_levels[6]){
                             update.fall(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1);
+                            Mix_PlayChannel(-1,moving,0);
                             key_hold[keyList[1]] = SDL_GetTicks();
                         }
                     }
@@ -1749,6 +1829,7 @@ public:
                             }
                         }
                         else{
+                            Mix_PlayChannel(-1,falling,0);
                             if (data.loss(two.board1)){
                                 loss1 = true;
                             }
@@ -1756,6 +1837,7 @@ public:
                                 two.reset1();
                                 if (data.check(two.board1,two.row_full1)){
                                     int cnt_row = data.delete_row(two.X1,two.Y1,two.index_type1,two.color_type1,two.board1,two.board_color1,two.row_full1);
+                                    Mix_PlayChannel(-1,getPoint,0);
                                     score1 += scoring(cnt_row);
                                     level1 = cal_level(score1);
                                 }
@@ -1768,18 +1850,21 @@ public:
                     if ((keyState[keyList[3]]) && check_update.move_l(two.X2,two.Y2,two.index_type2,two.board2)){
                         if (SDL_GetTicks()-key_hold[keyList[3]] >= hold_time){
                             update.move_l(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            Mix_PlayChannel(-1,moving,0);
                             key_hold[keyList[3]] = SDL_GetTicks();
                         }
                     }
                     if ((keyState[keyList[5]]) && check_update.move_r(two.X2,two.Y2,two.index_type2,two.board2)){
                         if (SDL_GetTicks()-key_hold[keyList[5]] >= hold_time){
                             update.move_r(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            Mix_PlayChannel(-1,moving,0);
                             key_hold[keyList[5]] = SDL_GetTicks();
                         }
                     }
                     if ((keyState[keyList[4]]) && check_update.fall(two.X2,two.Y2,two.index_type2,two.board2)){
                         if (SDL_GetTicks()-key_hold[keyList[4]] >= fall_levels[6]){
                             update.fall(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2);
+                            Mix_PlayChannel(-1,moving,0);
                             key_hold[keyList[4]] = SDL_GetTicks();
                         }
                     }
@@ -1795,9 +1880,11 @@ public:
                                 loss2 = true;
                             }
                             else{
+                                Mix_PlayChannel(-1,falling,0);
                                 two.reset2();
                                 if (data.check(two.board2,two.row_full2)){
                                     int cnt_row = data.delete_row(two.X2,two.Y2,two.index_type2,two.color_type2,two.board2,two.board_color2,two.row_full2);
+                                    Mix_PlayChannel(-1,getPoint,0);
                                     score2 += scoring(cnt_row);
                                     level2 = cal_level(score2);
                                 }
@@ -1880,6 +1967,7 @@ public:
     }
     //Màn hình chính
     int home(){
+        playMusic(backgroundMusic,-1);
         Uint32 start = SDL_GetTicks();
         int step = 2;
         int x1 = -92, x2 = 267;
@@ -1915,25 +2003,31 @@ public:
                 else if (event.type == SDL_MOUSEBUTTONDOWN){
                     if (!isPressed["settings"] && !isPressed["play"] && contains(event.button.x,event.button.y,crd_play)){
                         clicking["play"] = 1;
+                        Mix_PlayChannel(-1,clickButtons,0);
                     }
                     else if (!isPressed["play"] && !isPressed["settings"] && contains(event.button.x,event.button.y,crd_settings)){
                         clicking["settings"] = 1;
+                        Mix_PlayChannel(-1,clickButtons,0);
                     }
                     else if (!contains(event.button.x,event.button.y,crd_menu)){
                         isPressed["play"] = false;
                         isPressed["settings"] = false;
+                        Mix_PlayChannel(-1,clickButtons,0);
                     }
                     else if (isPressed["play"]){
                         if (contains(event.button.x,event.button.y,crd_onePlayer)){
                             clicking["onePlayer"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                         else if (contains(event.button.x,event.button.y,crd_twoPlayers)){
                             clicking["twoPlayers"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                     }
                     else if (isPressed["settings"]){
                         if (contains(event.button.x,event.button.y,crd_exit[3])){
                             clicking["exit"] = 1;
+                            Mix_PlayChannel(-1,clickButtons,0);
                         }
                     }
                 }
@@ -1997,12 +2091,14 @@ public:
                 running = false;
                 isPressed["onePlayer"] = false;
                 isPressed["play"] = false;
+                Mix_HaltMusic();
                 return 1;
             }
             if (isPressed["twoPlayers"]){
                 running = false;
                 isPressed["twoPlayers"] = false;
                 isPressed["play"] = false;
+                Mix_HaltMusic();
                 return 2;
             }
 
@@ -2057,10 +2153,19 @@ public:
         SDL_DestroyTexture(twoPlayers[0]);
         SDL_DestroyTexture(twoPlayers[1]);
 
+        //Xóa âm thanh
+        Mix_FreeMusic(backgroundMusic);
+        Mix_FreeMusic(openMode);
+        Mix_FreeChunk(clickButtons);
+        Mix_FreeChunk(getPoint);
+        Mix_FreeChunk(falling);
+        Mix_FreeChunk(moving);
+
         //Xóa cửa sổ màn hình
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         IMG_Quit();
+        Mix_CloseAudio();
         SDL_Quit();
     }
 };
