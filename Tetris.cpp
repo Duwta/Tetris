@@ -2,6 +2,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 #include <iostream>
+#include <fstream>
 #include <random>
 #include <algorithm>
 #include <string>
@@ -819,6 +820,7 @@ private:
     SDL_Texture* settings[2];
     SDL_Texture* onePlayer[2];
     SDL_Texture* twoPlayers[2];
+    SDL_Texture* volume[11];
 
     //Sound effects & background music
     Mix_Music* backgroundMusic;
@@ -860,6 +862,7 @@ private:
     int w_settings, h_settings;
     int w_onePlayer, h_onePlayer;
     int w_twoPlayers, h_twoPlayers;
+    int w_volume, h_volume;
 
     //Điểm của player
     int score = 0;
@@ -908,6 +911,8 @@ private:
     SDL_Rect crd_settings;
     SDL_Rect crd_onePlayer;
     SDL_Rect crd_twoPlayers;
+    SDL_Rect crd_musicVolume;
+    SDL_Rect crd_sfxVolume;
 
     //Lưu thời gian nhấn key
     map<SDL_Scancode, Uint32> key_hold;
@@ -942,6 +947,7 @@ private:
 
     //Âm lượng
     int musicVolume, sfxVolume;
+    int stepVolume = MIX_MAX_VOLUME/10;
 
     //chọn ảnh button khi click nút
     map<string, int> clicking;
@@ -1043,6 +1049,9 @@ public:
         loadTextureButton(settings,"settings");
         loadTextureButton(onePlayer,"1_player");
         loadTextureButton(twoPlayers,"2_players");
+        for (int i = 0; i < 11; i++){
+            volume[i] = loadTexture("graphic/menu/volume"+to_string(i)+".png");
+        }
 
         //Lấy âm thanh từ folder
         backgroundMusic = loadMix_Music("sound/background_music.mp3");
@@ -1098,6 +1107,7 @@ public:
         cal_size(w_settings,h_settings,52,15);
         cal_size(w_onePlayer,h_onePlayer,47,15);
         cal_size(w_twoPlayers,h_twoPlayers,53,15);
+        cal_size(w_volume,h_volume,22,3);
 
         //Tọa độ, thuộc tính của bảng, khối
         crd_board1 = {
@@ -1250,6 +1260,18 @@ public:
         get_crd(crd_settings,w_settings,h_settings,108,86);
         get_crd(crd_onePlayer,w_onePlayer,h_onePlayer,75,68);
         get_crd(crd_twoPlayers,w_twoPlayers,h_twoPlayers,140,68);
+        get_crd(crd_musicVolume,w_volume,h_volume,165,59);
+        get_crd(crd_sfxVolume,w_volume,h_volume,165,50);
+
+        //Khởi tạo giá trị âm lượng
+        musicVolume = MIX_MAX_VOLUME;
+        sfxVolume = MIX_MAX_VOLUME;
+        loadVolume(musicVolume,sfxVolume);
+        saveVolume(musicVolume,sfxVolume);
+        Mix_VolumeMusic(musicVolume);
+        Mix_Volume(-1,sfxVolume);
+        clicking["musicVolume"] = setVolume(musicVolume);
+        clicking["sfxVolume"] = setVolume(sfxVolume);
     }
     //Tạo texture ảnh bất kì
     SDL_Texture* loadTexture(const string& path){
@@ -1296,6 +1318,56 @@ public:
             cout << "Error loading sound effect: " << Mix_GetError() << endl;
         }
         return effect;
+    }
+    void loadVolume(int &x, int &y){
+        ifstream settingFile("data/volume.txt");
+        if (settingFile.is_open()){
+            settingFile >> x;
+            settingFile >> y;
+            settingFile.close(); 
+        }
+        else{
+            cout << "Could not open volume.txt" << endl;
+        }
+    }
+    void saveVolume(int x, int y){
+        ofstream settingFile("data/volume.txt");
+        if (settingFile.is_open()){
+            settingFile << x << endl;
+            settingFile << y << endl;
+            settingFile.close();
+        }
+        else{
+            cout << "Could not open volume.txt" << endl;
+        }
+    }
+    //Sửa giá trị volume trên setting
+    int settingVolume(int x){
+        int step = (displayMode.w*20/266)/10;
+        int startX = displayMode.w*164/266;
+        if (x < startX){
+            return 0;
+        }
+        for (int i = 0; i < 10; i++){
+            if (x >= startX+step*i && x < startX+step*(i+1)){
+                return i;
+            }
+        }
+        return 10;
+    }
+    //Sửa giá trị volume theo âm lượng
+    int setVolume(int x){
+        int step = MIX_MAX_VOLUME/10;
+        int startX = 0;
+        if (x < startX){
+            return 0;
+        }
+        for (int i = 0; i < 10; i++){
+            if (x >= startX+step*i && x < startX+step*(i+1)){
+                return i;
+            }
+        }
+        return 10;
     }
     //Vẽ các khối ra màn hình
     void draw_block(int board_color[25][12], SDL_Rect crd_block[25][12]){
@@ -1522,6 +1594,22 @@ public:
                             clicking["continue"] = 1;
                             Mix_PlayChannel(-1,clickButtons,0);
                         }
+                        else if (contains(event.button.x,event.button.y,crd_musicVolume)){
+                            isPressed["musicVolume"] = true;
+                            Mix_PlayChannel(-1,clickButtons,0);
+                            clicking["musicVolume"] = settingVolume(event.motion.x);
+                            Mix_VolumeMusic(stepVolume*clicking["musicVolume"]);
+                            musicVolume = stepVolume*clicking["musicVolume"];
+                            saveVolume(musicVolume,sfxVolume);
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_sfxVolume)){
+                            isPressed["sfxVolume"] = true;
+                            Mix_PlayChannel(-1,clickButtons,0);
+                            clicking["sfxVolume"] = settingVolume(event.motion.x);
+                            Mix_Volume(-1,stepVolume*clicking["sfxVolume"]);
+                            sfxVolume = stepVolume*clicking["musicVolume"];
+                            saveVolume(musicVolume,sfxVolume);
+                        }
                     }
                 }
                 else if (event.type == SDL_MOUSEBUTTONUP){
@@ -1540,6 +1628,26 @@ public:
                     if (clicking["continue"] == 1){
                         clicking["continue"] = 0;
                         isPressed["continue"] = true;
+                    }
+                    if (isPressed["musicVolume"]){
+                        isPressed["musicVolume"] = false;
+                    }
+                    if (isPressed["sfxVolume"]){
+                        isPressed["sfxVolume"] = false;
+                    }
+                }
+                if (event.type == SDL_MOUSEMOTION){
+                    if (isPressed["musicVolume"]){
+                        clicking["musicVolume"] = settingVolume(event.motion.x);
+                        Mix_VolumeMusic(stepVolume*clicking["musicVolume"]);
+                        musicVolume = stepVolume*clicking["musicVolume"];
+                        saveVolume(musicVolume,sfxVolume);
+                    }
+                    else if (isPressed["sfxVolume"]){
+                        clicking["sfxVolume"] = settingVolume(event.motion.x);
+                        Mix_Volume(-1,stepVolume*clicking["sfxVolume"]);
+                        sfxVolume = stepVolume*clicking["sfxVolume"];
+                        saveVolume(musicVolume,sfxVolume);
                     }
                 }
             }
@@ -1625,6 +1733,8 @@ public:
                 SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
                 SDL_RenderCopy(renderer,cntinue[clicking["continue"]],nullptr,&crd_cntinue);
                 SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[1]);
+                SDL_RenderCopy(renderer,volume[clicking["musicVolume"]],nullptr,&crd_musicVolume);
+                SDL_RenderCopy(renderer,volume[clicking["sfxVolume"]],nullptr,&crd_sfxVolume);
             }
 
             //Update màn hình mới
@@ -1776,6 +1886,22 @@ public:
                             clicking["continue"] = 1;
                             Mix_PlayChannel(-1,clickButtons,0);
                         }
+                        else if (contains(event.button.x,event.button.y,crd_musicVolume)){
+                            isPressed["musicVolume"] = true;
+                            Mix_PlayChannel(-1,clickButtons,0);
+                            clicking["musicVolume"] = settingVolume(event.motion.x);
+                            Mix_VolumeMusic(stepVolume*clicking["musicVolume"]);
+                            musicVolume = stepVolume*clicking["musicVolume"];
+                            saveVolume(musicVolume,sfxVolume);
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_sfxVolume)){
+                            isPressed["sfxVolume"] = true;
+                            Mix_PlayChannel(-1,clickButtons,0);
+                            clicking["sfxVolume"] = settingVolume(event.motion.x);
+                            Mix_Volume(-1,stepVolume*clicking["sfxVolume"]);
+                            sfxVolume = stepVolume*clicking["musicVolume"];
+                            saveVolume(musicVolume,sfxVolume);
+                        }
                     }
                 }
                 else if (event.type == SDL_MOUSEBUTTONUP){
@@ -1794,6 +1920,26 @@ public:
                     if (clicking["continue"] == 1){
                         clicking["continue"] = 0;
                         isPressed["continue"] = true;
+                    }
+                    if (isPressed["musicVolume"]){
+                        isPressed["musicVolume"] = false;
+                    }
+                    if (isPressed["sfxVolume"]){
+                        isPressed["sfxVolume"] = false;
+                    }
+                }
+                if (event.type == SDL_MOUSEMOTION){
+                    if (isPressed["musicVolume"]){
+                        clicking["musicVolume"] = settingVolume(event.motion.x);
+                        Mix_VolumeMusic(stepVolume*clicking["musicVolume"]);
+                        musicVolume = stepVolume*clicking["musicVolume"];
+                        saveVolume(musicVolume,sfxVolume);
+                    }
+                    else if (isPressed["sfxVolume"]){
+                        clicking["sfxVolume"] = settingVolume(event.motion.x);
+                        Mix_Volume(-1,stepVolume*clicking["sfxVolume"]);
+                        sfxVolume = stepVolume*clicking["sfxVolume"];
+                        saveVolume(musicVolume,sfxVolume);
                     }
                 }
             }
@@ -1936,6 +2082,8 @@ public:
                 SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
                 SDL_RenderCopy(renderer,cntinue[clicking["continue"]],nullptr,&crd_cntinue);
                 SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[1]);
+                SDL_RenderCopy(renderer,volume[clicking["musicVolume"]],nullptr,&crd_musicVolume);
+                SDL_RenderCopy(renderer,volume[clicking["sfxVolume"]],nullptr,&crd_sfxVolume);
             }
             //Update màn hình mới
             SDL_RenderPresent(renderer);
@@ -2029,6 +2177,22 @@ public:
                             clicking["exit"] = 1;
                             Mix_PlayChannel(-1,clickButtons,0);
                         }
+                        else if (contains(event.button.x,event.button.y,crd_musicVolume)){
+                            isPressed["musicVolume"] = true;
+                            Mix_PlayChannel(-1,clickButtons,0);
+                            clicking["musicVolume"] = settingVolume(event.motion.x);
+                            Mix_VolumeMusic(stepVolume*clicking["musicVolume"]);
+                            musicVolume = stepVolume*clicking["musicVolume"];
+                            saveVolume(musicVolume,sfxVolume);
+                        }
+                        else if (contains(event.button.x,event.button.y,crd_sfxVolume)){
+                            isPressed["sfxVolume"] = true;
+                            Mix_PlayChannel(-1,clickButtons,0);
+                            clicking["sfxVolume"] = settingVolume(event.motion.x);
+                            Mix_Volume(-1,stepVolume*clicking["sfxVolume"]);
+                            sfxVolume = stepVolume*clicking["musicVolume"];
+                            saveVolume(musicVolume,sfxVolume);
+                        }
                     }
                 }
                 else if (event.type == SDL_MOUSEBUTTONUP){
@@ -2051,6 +2215,26 @@ public:
                     if (clicking["exit"] == 1){
                         clicking["exit"] = 0;
                         isPressed["exit"] = true;
+                    }
+                    if (isPressed["musicVolume"]){
+                        isPressed["musicVolume"] = false;
+                    }
+                    if (isPressed["sfxVolume"]){
+                        isPressed["sfxVolume"] = false;
+                    }
+                }
+                if (event.type == SDL_MOUSEMOTION){
+                    if (isPressed["musicVolume"]){
+                        clicking["musicVolume"] = settingVolume(event.motion.x);
+                        Mix_VolumeMusic(stepVolume*clicking["musicVolume"]);
+                        musicVolume = stepVolume*clicking["musicVolume"];
+                        saveVolume(musicVolume,sfxVolume);
+                    }
+                    else if (isPressed["sfxVolume"]){
+                        clicking["sfxVolume"] = settingVolume(event.motion.x);
+                        Mix_Volume(-1,stepVolume*clicking["sfxVolume"]);
+                        sfxVolume = stepVolume*clicking["sfxVolume"];
+                        saveVolume(musicVolume,sfxVolume);
                     }
                 }
             }
@@ -2076,6 +2260,8 @@ public:
             if (isPressed["settings"]){
                 SDL_RenderCopy(renderer,menu,nullptr,&crd_menu);
                 SDL_RenderCopy(renderer,exit[clicking["exit"]],nullptr,&crd_exit[3]);
+                SDL_RenderCopy(renderer,volume[clicking["musicVolume"]],nullptr,&crd_musicVolume);
+                SDL_RenderCopy(renderer,volume[clicking["sfxVolume"]],nullptr,&crd_sfxVolume);
             }
 
             //Update màn hình mới
@@ -2152,6 +2338,9 @@ public:
         SDL_DestroyTexture(onePlayer[1]);
         SDL_DestroyTexture(twoPlayers[0]);
         SDL_DestroyTexture(twoPlayers[1]);
+        for (int i = 0; i < 11; i++){
+            SDL_DestroyTexture(volume[i]);
+        }
 
         //Xóa âm thanh
         Mix_FreeMusic(backgroundMusic);
